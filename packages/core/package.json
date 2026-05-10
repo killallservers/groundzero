@@ -1,6 +1,11 @@
 {
   "name": "@groundzero/core",
   "module": "src/index.ts",
+  "scripts": {
+    "db:generate": "bunx drizzle-kit generate --config drizzle.config.ts",
+    "db:migrate": "bun run src/db/migrate.ts",
+    "db:push": "bun run db:generate && bun run db:migrate"
+  },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^4.0.103",
     "@ai-sdk/anthropic": "^3.0.76",
