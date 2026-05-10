@@ -9,77 +9,111 @@
 
 **What:** AI workspace generator — paste a project idea, receive a fully specced Claude Code workspace ZIP, ready to build.
 **Why:** Eliminates the hours of setup (versions, conventions, docs, AI context) between having an idea and being able to code.
-**Status:** Phase 1 complete (`install.sh` + templates). Phase 2 (agent pipeline) and Phase 3 (web UI) building next.
+**Status:** Phase 1 complete (`install.sh` + templates). Phase 2 pipeline built (extract → clarify → resolve → draft → generate → zip). Phase 3 web UI scaffolded — real UI not yet implemented.
 **Repo:** github.com/killallservers/groundzero
 
 ---
 
 ## Tech Stack
 
-| Layer      | Technology                          | Notes                                      |
-|------------|-------------------------------------|--------------------------------------------|
-| Language   | TypeScript 7                        | `@typescript/native-preview`; no CommonJS  |
-| Runtime    | Bun                                 | No Node; single compiled binary output     |
-| Framework  | Hono                                | HTTP layer; runs on Bun and CF Workers     |
-| Database   | SQLite (`bun:sqlite`)               | Drizzle ORM via `drizzle-orm/bun-sqlite`; Bun-native     |
-| Auth       | Better Auth                         | Organization plugin for multi-tenancy      |
-| Infra      | Hetzner VPS                         | Pulumi provisioning; Caddy TLS; no Docker  |
-| Formatting | Biome                               | Replaces ESLint + Prettier                 |
+| Layer      | Technology                              | Notes                                                        |
+|------------|-----------------------------------------|--------------------------------------------------------------|
+| Language   | TypeScript 7                            | `@typescript/native-preview` (`tsgo`); no CommonJS           |
+| Runtime    | Bun                                     | No Node; `Bun.env` not `process.env`; single binary output   |
+| Framework  | Hono                                    | HTTP layer; runs on Bun and CF Workers                       |
+| CLI        | Ink                                     | React for CLIs; state machine pattern; compiles to binary    |
+| Database   | SQLite (`bun:sqlite`)                   | Drizzle ORM via `drizzle-orm/bun-sqlite`; Bun-native         |
+| LLM        | Vercel AI SDK (`ai`)                    | Multi-provider; factory in `packages/core/src/lib/llm.ts`    |
+| Auth       | Better Auth                             | Organization plugin for multi-tenancy                        |
+| Infra      | Hetzner VPS                             | Pulumi provisioning; Caddy TLS; no Docker                    |
+| Formatting | Biome 2                                 | Replaces ESLint + Prettier; `bun run check:fix` to auto-fix  |
 
 ---
 
 ## Repository Structure
 
 ```
-install.sh              — Phase 1: POSIX sh installer (curl | sh)
-templates/docs/         — doc templates copied into generated workspaces
-.claude/skills/         — workflow guides distributed with install.sh
-docs/                   — documentation for this repo itself
-src/                    — Phase 2+3 server code (Bun + Hono)
+install.sh                      — Phase 1: POSIX sh installer (curl | sh)
+templates/docs/                 — doc templates copied into generated workspaces
+.claude/skills/                 — workflow guides distributed with install.sh
+docs/                           — documentation for this repo itself
+packages/
+  core/                         — pipeline logic, DB, LLM factory (@groundzero/core)
+    src/db/                     — schema.ts, index.ts (bun:sqlite), migrate.ts
+    src/lib/llm.ts              — multi-provider LLM factory (Vercel AI SDK)
+    src/pipeline/               — extract, clarify, resolve, draft, generate, zip
+    drizzle/                    — generated SQL migrations (never hand-edit)
+    drizzle.config.ts           — drizzle-kit config (schema + out paths are local)
+    groundzero.db               — SQLite file (gitignored; default path via import.meta.url)
+  api/                          — Hono HTTP server (@groundzero/api)
+    src/index.ts                — Bun.serve on port 3000
+    src/routes/sessions.ts      — pipeline session CRUD + triggers
+  cli/                          — Ink terminal UI (@groundzero/cli)
+    src/index.tsx               — React state machine; compiles to standalone binary
+  web/                          — Bun fullstack frontend (@groundzero/web)
+    src/index.ts                — Bun.serve on port 5173; proxies /api/* → api
+    src/App.tsx                 — React + shadcn/ui (template only; Phase 3 TODO)
 ```
 
 ---
 
 ## Coding Conventions
 
-- TypeScript 7 native — `@typescript/native-preview` as the TS compiler
-- Biome for all formatting and linting — no ESLint, no Prettier
-- ESM imports everywhere; no CommonJS
-- `drizzle-orm/bun-sqlite` for the database — Bun-native, no extra dependencies
+- TypeScript 7 — `tsgo` for type-checking; per-package tsconfig; `bun run typecheck` at root
+- Biome 2 for all formatting and linting — no ESLint, no Prettier
+- ESM imports everywhere; `.ts` extension in import paths; no CommonJS
+- `Bun.env` instead of `process.env` — idiomatic Bun and shows intent clearly
+- `import.meta.url` for file-relative paths (e.g. DB path, migrations folder)
 - `bun add <pkg>@latest` on the CLI — never write versions in `package.json` by hand
-- Drizzle schema changes via `bun db:push` only — never hand-edit migration files
-- kebab-case filenames; PascalCase types
-- No `process.env` in packages — typed build constants or injected config
+- All root scripts route through `bun --filter <package> run <script>` — never reach into `packages/` directly from root scripts
+- Schema changes: `bun db:push` from root (runs `drizzle-kit generate` + bun-native migrate)
+- kebab-case filenames; PascalCase types and React components
+- React hooks: always `useCallback` for stable function references passed into `useEffect` deps
 
 ---
 
 ## Architecture Principles
 
-- Pipeline is stateful and patchable: any stage can loop back without restarting
-- Resolution at generation time — live `llms.txt` + package versions, never cached in templates
-- Single compiled Bun binary; no Docker, no managed services
+- Pipeline is stateful and patchable — any stage can loop back without restarting from the top
+- Resolution at generation time — live `llms.txt` + package versions; never cached in templates
+- Single compiled Bun binary output; no Docker, no managed services
 - Auth at middleware — route handlers never contain auth logic
 - Specs are permanent — code is regenerable, intent is not
+- All database artifacts live in `packages/core` — schema, migrations, config, and `.db` files
 
 ---
 
 ## Hard Constraints
 
-- Never modify Drizzle-generated migration files, snapshots, or journal
+- Never modify Drizzle-generated migration files, snapshots, or journal (`packages/core/drizzle/`)
 - Never add runtime dependencies without explicit approval
 - Never commit secrets, tokens, or credentials
-- Use `bun db:push` not `generate` + `migrate`
-- No `pg` package — use `drizzle-orm/bun-sql`
-- No Node.js built-ins or polyfills — Bun-native APIs only
+- Use `bun db:push` for schema changes — never `bunx drizzle-kit push` directly (`better-sqlite3` is incompatible with Bun)
+- No Node.js built-ins or polyfills — Bun-native APIs only (`Bun.env`, `bun:sqlite`, `import.meta.url`)
 - Template placeholders must remain `[TODO]` — never leave a project-specific value in a generic template
+- No nested `CLAUDE.md` files inside packages — one navigation guide at the root
 
 ---
 
-## Key Contacts & Decisions
+## LLM Provider Configuration
+
+| Env var         | Default      | Values                                                                    |
+|-----------------|--------------|---------------------------------------------------------------------------|
+| `LLM_PROVIDER`  | `anthropic`  | `anthropic` \| `openai` \| `google` \| `mistral` \| `cohere` \| `bedrock` \| `azure` \| `custom` |
+| `LLM_MODEL`     | provider default | overrides the model ID for the selected provider                      |
+| `LLM_API_KEY`   | —            | API key for the selected provider                                         |
+| `LLM_BASE_URL`  | —            | Base URL for `custom` (default: `http://localhost:11434/v1` for Ollama)   |
+
+`custom` uses the OpenAI-compatible endpoint — works with Ollama and any local LLM.
+
+---
+
+## Key References
 
 - Decisions log: `docs/decisions.md`
 - Open specs: `.claude/specs/`
 - Architecture doc: `docs/architecture.md`
+- Constraints: `docs/constraints.md`
 
 ---
 

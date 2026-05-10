@@ -6,7 +6,122 @@ Run `/decision` to add an entry.
 
 ---
 
-## ADR-007: SQLite (libsql) over Postgres
+## ADR-012: Drizzle artifacts co-located in packages/core
+
+**Date:** 2026-05-10
+**Status:** Accepted
+
+**Context:**
+After moving to a monorepo, `drizzle.config.ts` lived at the root because it predated the restructure. The root was reaching into `packages/core` for schema paths and placing migration output at the repo root — confusing and inconsistent with the principle of co-locating concerns.
+
+**Decision:**
+Move `drizzle.config.ts`, `drizzle/` (migrations), and `*.db` files all into `packages/core/`. DB file path uses `import.meta.url` to resolve relative to the source file, not the CWD.
+
+**Consequences:**
+- ✅ All database concerns live in one place alongside the schema
+- ✅ `drizzle.config.ts` paths are local (`./src/db/schema.ts`, `./drizzle`)
+- ✅ Root has no DB-specific files
+- ⚠️ DB path must use `import.meta.url` — a CWD-relative path would break when invoked from root via `bun --filter`
+
+---
+
+## ADR-011: bun-native migrator instead of drizzle-kit push
+
+**Date:** 2026-05-10
+**Status:** Accepted
+
+**Context:**
+`drizzle-kit push` (the live-sync approach) requires `better-sqlite3` under the hood, which is a native Node.js addon incompatible with Bun. Attempting to use it crashes at runtime.
+
+**Decision:**
+Two-step schema update: `drizzle-kit generate` produces SQL migration files, then `drizzle-orm/bun-sqlite/migrator` applies them. Wrapped in `bun db:push` at root so the interface is unchanged.
+
+**Consequences:**
+- ✅ Fully Bun-native — no incompatible native addons
+- ✅ Migration files are explicit and reviewable (committed to `packages/core/drizzle/`)
+- ✅ `bun db:push` is the single user-facing command
+- ⚠️ Migration files are generated artifacts — never hand-edit them
+
+---
+
+## ADR-010: Vercel AI SDK for multi-provider LLM support
+
+**Date:** 2026-05-10
+**Status:** Accepted
+
+**Context:**
+The pipeline originally hardcoded Anthropic. Users running local LLMs (Ollama) or on different cloud providers (OpenAI, Google, Mistral) would be locked out. The provider abstraction needs to be clean and not spread across pipeline files.
+
+**Options Considered:**
+- Individual provider SDKs: requires per-provider code paths throughout the pipeline
+- Vercel AI SDK (`ai`): Apache 2.0, unified `generateText()` interface, provider factories for all major platforms
+
+**Decision:**
+Vercel AI SDK. A single factory function in `packages/core/src/lib/llm.ts` reads `LLM_PROVIDER` and returns a `LanguageModel`. All pipeline code calls `getModel()` — no provider awareness outside the factory.
+
+**Supported providers:** `anthropic` (default), `openai`, `google`, `mistral`, `cohere`, `bedrock`, `azure`, `custom` (OpenAI-compatible endpoint — works with Ollama).
+
+**Consequences:**
+- ✅ Provider switch requires only env var change — no code change
+- ✅ Open source (Apache 2.0); no vendor dependency
+- ✅ Unified interface — pipeline files are provider-agnostic
+- ⚠️ Vercel AI SDK v6 uses `maxOutputTokens` (not `maxTokens`) — note for future callers
+
+---
+
+## ADR-009: Ink for CLI terminal UI
+
+**Date:** 2026-05-10
+**Status:** Accepted
+
+**Context:**
+Phase 2 needs a terminal-based interface for the pipeline (idea entry → clarification Q&A → spec review → confirm generate). Evaluated `@clack/prompts` and Ink.
+
+**Options Considered:**
+- `@clack/prompts`: lightweight, imperative, limited layout control
+- Ink: React for CLIs, 38k GitHub stars, used by Prisma and GitHub Copilot, supports complex reactive layouts via React state machine
+
+**Decision:**
+Ink. The pipeline's stage model maps cleanly to React state — each stage is a discriminated union variant, each transition is a `setStage()` call. `useEffect` per stage drives async pipeline functions. `useCallback` for stable `done`/`fail` helpers prevents stale closure bugs.
+
+**Consequences:**
+- ✅ Rich, reactive terminal UI with the same mental model as the web frontend
+- ✅ Compiles to a standalone binary via `bun build --compile --bytecode`
+- ✅ State machine is explicit and auditable
+- ⚠️ JSX requires `.tsx` extension and `"jsx": "react-jsx"` in tsconfig
+
+---
+
+## ADR-008: Bun workspaces monorepo (packages/{api,cli,core,web})
+
+**Date:** 2026-05-10
+**Status:** Accepted
+
+**Context:**
+Phase 2 adds an API server, a CLI, and Phase 3 adds a web frontend. Keeping everything in a flat `src/` would mix server code, terminal code, browser code, and shared logic — incompatible build targets and conflicting runtime assumptions.
+
+**Decision:**
+Bun workspaces monorepo. Four packages:
+- `@groundzero/core` — shared pipeline logic, DB, LLM factory; no runtime-specific code
+- `@groundzero/api` — Hono HTTP server; depends on core
+- `@groundzero/cli` — Ink terminal UI; depends on core; compiles to binary
+- `@groundzero/web` — Bun fullstack frontend; proxies API calls; depends on nothing from core directly
+
+**Key implementation details:**
+- Each package scaffolded with `bun init` (or `bun init --react=shadcn` for web) from `packages/`
+- Each package has its own `tsconfig.json` — root tsconfig removed entirely
+- All root scripts use `bun --filter @groundzero/<pkg> run <script>` — no direct `packages/` path references in root scripts
+- `drizzle-kit` stays in root `devDependencies` (it's a dev tool, not a runtime dep of any package)
+
+**Consequences:**
+- ✅ Clean separation of build targets (browser vs Bun server vs binary)
+- ✅ TypeScript configs can differ per package (web needs `"lib": ["DOM"]`)
+- ✅ `bun --filter` enables running per-package scripts from root without `cd`
+- ⚠️ Bun places workspace symlinks in `packages/<consumer>/node_modules/@groundzero/core`, not root
+
+---
+
+## ADR-007: SQLite (bun:sqlite) over Postgres
 
 **Date:** 2026-05-10
 **Status:** Accepted
@@ -20,7 +135,7 @@ Use `bun:sqlite` via `drizzle-orm/bun-sqlite`. Bun-native, zero extra dependenci
 **Consequences:**
 - ✅ Zero infrastructure to run — just a file
 - ✅ Works identically in development and CI
-- ✅ Drizzle supports libsql natively
+- ✅ Drizzle supports bun-sqlite natively
 - ⚠️ Not suitable for multi-instance production deployments — acceptable until Phase 3 requires it
 
 ---
@@ -95,15 +210,17 @@ Better Auth. Keeps auth in-process. Organization plugin maps cleanly to multi-te
 **Status:** Accepted
 
 **Context:**
-TypeScript 7 introduces a native Go-based compiler that runs 10x faster and integrates directly with Bun without a separate `tsc` step.
+TypeScript 7 introduces a native Go-based compiler (`tsgo`) that runs 10× faster and integrates directly with Bun without a separate `tsc` step.
 
 **Decision:**
-Use `@typescript/native-preview` as the TypeScript compiler.
+Use `@typescript/native-preview` as the TypeScript compiler. Typecheck per package: `tsgo -p packages/<name>`. Root tsconfig removed — each package has its own.
 
 **Consequences:**
 - ✅ Dramatically faster type-checking
 - ✅ Native Bun integration — no build step during development
+- ✅ Per-package tsconfig allows DOM lib for web, Bun types for server packages
 - ⚠️ Preview; some type-level edge cases may differ from tsc — acceptable given the performance gain
+- ⚠️ `bun init`-generated tsconfigs include `noUncheckedIndexedAccess: true` — stricter array indexing; guard computed property access
 
 ---
 
@@ -141,13 +258,13 @@ Need a runtime that compiles to a standalone executable, runs TypeScript nativel
 
 **Options Considered:**
 - Node.js: ubiquitous, large ecosystem, requires separate install
-- Bun: TypeScript-native, single binary compilation, native Postgres bindings, fast startup
+- Bun: TypeScript-native, single binary compilation, native SQLite bindings, fast startup
 
 **Decision:**
 Bun. Compile to a single binary for Hetzner deployment.
 
 **Consequences:**
 - ✅ No Node.js dependency on the server
-- ✅ Native TypeScript + native SQL bindings
+- ✅ Native TypeScript + native SQLite bindings
 - ✅ Single binary simplifies deploy
-- ⚠️ Some Node ecosystem packages not fully compatible — verify per dependency
+- ⚠️ Some Node ecosystem packages not fully compatible — verify per dependency (e.g. `better-sqlite3` is incompatible; use `bun:sqlite`)

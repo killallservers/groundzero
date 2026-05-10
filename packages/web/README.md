@@ -1,21 +1,58 @@
-# bun-react-tailwind-shadcn-template
+# @groundzero/web
 
-To install dependencies:
+Bun fullstack server + React frontend. Serves the Ground Zero web UI and proxies API calls to `@groundzero/api`.
 
-```bash
-bun install
-```
+**Status:** Scaffolded. The real workspace generator UI is Phase 3 — `src/App.tsx` currently contains the `bun init --react=shadcn` template.
 
-To start a development server:
+## Dev
 
-```bash
+```sh
+# from repo root (starts web server with HMR)
+bun --filter @groundzero/web run dev
+
+# also start the API server in another terminal
 bun dev
 ```
 
-To run for production:
+Web: `http://localhost:5173`
+API: `http://localhost:3000`
 
-```bash
-bun start
+## How it works
+
+`src/index.ts` uses the Bun fullstack bundler:
+
+```ts
+import index from "./index.html";   // Bun bundles + serves the React app
+
+Bun.serve({
+  routes: {
+    "/": index,                      // SPA
+    "/api/*": async (req) => { ... } // proxy → packages/api
+  }
+});
 ```
 
-This project was created using `bun init` in bun v1.3.13. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+HMR is active in development. Production build (`bun run build`) compiles to `dist/`.
+
+## Build
+
+```sh
+bun --filter @groundzero/web run build
+# → packages/web/dist/
+```
+
+## Environment Variables
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `PORT` | `5173` | Web server port |
+| `API_PORT` | `3000` | API server port to proxy to |
+| `NODE_ENV` | — | Set to `production` to disable HMR |
+
+## Stack
+
+- React 19 + TypeScript
+- Tailwind CSS v4 (via `bun-plugin-tailwind`)
+- shadcn/ui components (Radix UI primitives)
+- Bun fullstack bundler (`import from "./index.html"`)
+- Path alias: `@/` → `src/`

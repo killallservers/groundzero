@@ -50,14 +50,20 @@ pulumi stack output sshCommand
 # → ssh deploy@<ip> -p 2222
 ```
 
-## Deploy Process
+## Build
 
 ```bash
-# build binary
-bun build --compile --target=bun src/index.ts --outfile=groundzero
+# API server binary
+bun --filter @groundzero/api run build
+# → dist/groundzero-server
 
-# deploy via GitHub Actions on push to main
-# manual: push to main or re-run the workflow
+# CLI binary
+bun --filter @groundzero/cli run build
+# → dist/groundzero
+
+# Web production bundle
+bun --filter @groundzero/web run build
+# → packages/web/dist/
 ```
 
 ## Phase 1 — Install Script
@@ -68,17 +74,37 @@ bun build --compile --target=bun src/index.ts --outfile=groundzero
 
 > Never commit values. Document keys here.
 
-| Key | Required | Description |
-|-----|----------|-------------|
-| `DATABASE_PATH` | No | SQLite file path (default `./groundzero.db`) |
-| `BETTER_AUTH_SECRET` | Yes | Secret for signing sessions |
-| `GOOGLE_CLIENT_ID` | No | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | No | Google OAuth client secret |
-| `PORT` | No | HTTP port (default 3000) |
+### API (`packages/api`)
+
+| Key | Required | Default | Description |
+|-----|----------|---------|-------------|
+| `PORT` | No | `3000` | API HTTP port |
+| `DATABASE_PATH` | No | `packages/core/groundzero.db` | SQLite file path (resolved via `import.meta.url`) |
+| `BETTER_AUTH_SECRET` | Yes | — | Secret for signing sessions |
+| `GOOGLE_CLIENT_ID` | No | — | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | No | — | Google OAuth client secret |
+
+### LLM (`packages/core`)
+
+| Key | Required | Default | Description |
+|-----|----------|---------|-------------|
+| `LLM_PROVIDER` | No | `anthropic` | `anthropic` \| `openai` \| `google` \| `mistral` \| `cohere` \| `bedrock` \| `azure` \| `custom` |
+| `LLM_MODEL` | No | provider default | Override the model ID (e.g. `claude-opus-4-7`, `gpt-4o`) |
+| `LLM_API_KEY` | Depends | — | API key for the selected provider (not needed for `bedrock` or `custom`) |
+| `LLM_BASE_URL` | No | `http://localhost:11434/v1` | Base URL for `custom` provider (Ollama or any OpenAI-compatible endpoint) |
+
+### Web (`packages/web`)
+
+| Key | Required | Default | Description |
+|-----|----------|---------|-------------|
+| `PORT` | No | `5173` | Web server port |
+| `API_PORT` | No | `3000` | Port of the API server to proxy to |
+| `NODE_ENV` | No | — | Set to `production` to disable HMR |
 
 ## Health Check
 
-`GET /health` → `{ status: "ok" }`
+`GET /api/health` → `{ "status": "ok" }` (via web → api proxy)
+`GET /health` → `{ "status": "ok" }` (api directly on port 3000)
 
 ---
 
