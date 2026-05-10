@@ -1,5 +1,13 @@
 {
   "mcpServers": {
+    "groundzero": {
+      "command": "bun",
+      "args": ["run", "packages/mcp/src/index.ts"],
+      "env": {
+        "LLM_PROVIDER": "anthropic",
+        "LLM_API_KEY": "YOUR_API_KEY"
+      }
+    },
     "atlassian": {
       "command": "npx",
       "args": ["-y", "@atlassian/mcp"],

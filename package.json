@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "dev": "bun --filter @groundzero/api run dev",
-    "typecheck": "tsgo -p packages/core && tsgo -p packages/api && tsgo -p packages/cli && tsgo -p packages/web",
+    "typecheck": "tsgo -p packages/core && tsgo -p packages/api && tsgo -p packages/cli && tsgo -p packages/web && tsgo -p packages/mcp",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "format": "biome format --write .",
