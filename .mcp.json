@@ -8,14 +8,9 @@
         "LLM_API_KEY": "YOUR_API_KEY"
       }
     },
-    "atlassian": {
+    "plane": {
       "command": "npx",
-      "args": ["-y", "@atlassian/mcp"],
-      "env": {
-        "ATLASSIAN_EMAIL": "YOUR_EMAIL",
-        "ATLASSIAN_TOKEN": "YOUR_API_TOKEN",
-        "ATLASSIAN_DOMAIN": "YOUR_DOMAIN.atlassian.net"
-      }
+      "args": ["mcp-remote@latest", "https://mcp.plane.so/http/mcp"]
     },
     "github": {
       "command": "npx",
