@@ -1,0 +1,19 @@
+# Local Claude Code overrides (machine-specific paths, personal tokens)
+.claude/settings.local.json
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+
+# Dependencies
+node_modules/
+
+# Bun
+bun.lock
+
+# OS
+.DS_Store

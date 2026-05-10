@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "atlassian": {
+      "command": "npx",
+      "args": ["-y", "@atlassian/mcp"],
+      "env": {
+        "ATLASSIAN_EMAIL": "YOUR_EMAIL",
+        "ATLASSIAN_TOKEN": "YOUR_API_TOKEN",
+        "ATLASSIAN_DOMAIN": "YOUR_DOMAIN.atlassian.net"
+      }
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_TOKEN": "YOUR_GITHUB_TOKEN"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "./"]
+    }
+  }
+}
