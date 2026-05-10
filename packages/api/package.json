@@ -10,5 +10,12 @@
     "@groundzero/core": "workspace:*",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.18"
+  },
+  "module": "src/index.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
   }
 }

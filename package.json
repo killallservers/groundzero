@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "dev": "bun run --watch packages/api/src/index.ts",
-    "typecheck": "tsgo -p .",
+    "typecheck": "tsgo -p packages/core && tsgo -p packages/api && tsgo -p packages/cli && tsgo -p packages/web",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "format": "biome format --write .",
@@ -21,6 +21,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
     "@types/bun": "^1.3.13",
+    "@types/react": "^19.2.14",
     "@typescript/native-preview": "^7.0.0-dev.20260510.1",
     "drizzle-kit": "^0.31.10"
   }

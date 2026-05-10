@@ -1,19 +1,15 @@
 {
   "compilerOptions": {
-    "lib": ["esnext"],
-    "module": "esnext",
-    "target": "esnext",
-    "moduleResolution": "bundler",
+    "lib": ["ESNext"],
+    "target": "ESNext",
+    "module": "Preserve",
     "moduleDetection": "force",
+    "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "strict": true,
     "skipLibCheck": true,
-    "types": ["bun"],
-    "paths": {
-      "@groundzero/core": ["./packages/core/src/index.ts"],
-      "@groundzero/core/*": ["./packages/core/src/*"]
-    }
+    "types": ["bun"]
   },
-  "include": ["packages/*/src/**/*.ts", "drizzle.config.ts"]
+  "include": ["drizzle.config.ts"]
 }

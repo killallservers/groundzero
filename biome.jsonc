@@ -24,6 +24,11 @@
       "quoteStyle": "double"
     }
   },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
   "assist": {
     "enabled": true,
     "actions": {
@@ -31,5 +36,24 @@
         "organizeImports": "on"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      // Generated web template files — will be replaced in Phase 3
+      "includes": ["packages/web/src/**", "packages/web/styles/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noNonNullAssertion": "off"
+          },
+          "suspicious": {
+            "noAssignInExpressions": "off"
+          },
+          "complexity": {
+            "noImportantStyles": "off"
+          }
+        }
+      }
+    }
+  ]
 }
