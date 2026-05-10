@@ -1,8 +1,8 @@
-import { Database } from 'bun:sqlite'
-import { drizzle } from 'drizzle-orm/bun-sqlite'
-import * as schema from './schema'
+import { Database } from "bun:sqlite";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import * as schema from "./schema";
 
-const sqlite = new Database(process.env.DATABASE_PATH ?? 'groundzero.db')
-sqlite.exec('PRAGMA journal_mode = WAL')
+const sqlite = new Database(process.env.DATABASE_PATH ?? "groundzero.db");
+sqlite.exec("PRAGMA journal_mode = WAL");
 
-export const db = drizzle(sqlite, { schema })
+export const db = drizzle(sqlite, { schema });
