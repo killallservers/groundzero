@@ -1,7 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { generateText } from "ai";
+import { getModel } from "../lib/llm";
 import type { PipelineState } from "./types";
-
-const client = new Anthropic();
 
 export async function draft(state: PipelineState): Promise<string> {
   const docsContext = state.resolved?.packages
@@ -9,16 +8,13 @@ export async function draft(state: PipelineState): Promise<string> {
     .map((p) => `## ${p.name} (${p.version})\n${p.llmsTxt}`)
     .join("\n\n");
 
-  const message = await client.messages.create({
-    model: "claude-opus-4-5",
-    max_tokens: 4096,
+  const { text } = await generateText({
+    model: getModel(),
+    maxOutputTokens: 4096,
     system: docsContext
       ? `You have access to current documentation for the packages in this project:\n\n${docsContext}`
       : undefined,
-    messages: [
-      {
-        role: "user",
-        content: `Write a project spec (docs/spec.md) for this project.
+    prompt: `Write a project spec (docs/spec.md) for this project.
 
 Idea: ${state.idea}
 
@@ -31,9 +27,7 @@ ${Object.entries(state.answers ?? {})
   .join("\n")}
 
 The spec should cover: problem statement, goals, non-goals, technical design, and acceptance criteria. Write it in markdown.`,
-      },
-    ],
   });
 
-  return message.content[0].type === "text" ? message.content[0].text : "";
+  return text;
 }
