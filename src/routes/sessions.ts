@@ -8,6 +8,7 @@ import { clarify } from '../pipeline/clarify'
 import { resolve } from '../pipeline/resolve'
 import { draft } from '../pipeline/draft'
 import { generate } from '../pipeline/generate'
+import { buildZip } from '../pipeline/zip'
 import type { PipelineEvent, PipelineState } from '../pipeline/types'
 
 export const sessionsRouter = new Hono()
@@ -158,9 +159,32 @@ sessionsRouter.get('/:id/generate', (c) => {
       state.files = files
       await db.update(sessions).set({ stage: 'zip', state, updatedAt: new Date() }).where(eq(sessions.id, id))
       await emit({ type: 'generate:done', files })
+      await db.update(sessions).set({ stage: 'done', state, updatedAt: new Date() }).where(eq(sessions.id, id))
       await emit({ type: 'zip:ready', sessionId: id })
     } catch (err) {
       await emit({ type: 'error', message: err instanceof Error ? err.message : 'pipeline error' })
     }
+  })
+})
+
+sessionsRouter.get('/:id/download', async (c) => {
+  const id = c.req.param('id')
+
+  const session = await db.query.sessions.findFirst({ where: eq(sessions.id, id) })
+  if (!session) return c.json({ error: 'session not found' }, 404)
+  if (session.stage !== 'done') return c.json({ error: 'workspace not ready yet' }, 409)
+
+  const files = session.state.files
+  if (!files || Object.keys(files).length === 0) {
+    return c.json({ error: 'no files generated' }, 500)
+  }
+
+  const zip = await buildZip(files)
+
+  return new Response(zip, {
+    headers: {
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="groundzero-${id.slice(0, 8)}.zip"`,
+    },
   })
 })
