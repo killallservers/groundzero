@@ -7,7 +7,7 @@
     "groundzero": "./src/index.tsx"
   },
   "scripts": {
-    "build": "bun build --compile --bytecode --target=bun src/index.tsx --outfile=../../dist/groundzero"
+    "build": "bun build --compile --bytecode --target=bun src/index.tsx --outfile=../../dist/gz"
   },
   "dependencies": {
     "@groundzero/core": "workspace:*",

@@ -1,8 +1,14 @@
 {
   "name": "@groundzero/mcp",
+  "version": "0.1.0",
   "module": "src/index.ts",
   "type": "module",
-  "private": true,
+  "bin": {
+    "groundzero-mcp": "./src/index.ts"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "build": "bun build --compile --bytecode --target=bun src/index.ts --outfile=../../dist/groundzero-mcp"
