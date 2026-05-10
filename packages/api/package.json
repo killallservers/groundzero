@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@groundzero/core": "workspace:*",
+    "better-auth": "^1.6.10",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.18"
   },
