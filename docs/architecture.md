@@ -52,7 +52,7 @@ Both feed the same pipeline.
 | Runtime | Bun | Single binary, TypeScript-native, fast startup |
 | TypeScript | TypeScript 7 (`@typescript/native-preview`) | Native TS compilation; no tsc step |
 | HTTP | Hono | Runs on Bun and CF Workers; SSE via `streamSSE`; typed RPC |
-| Postgres driver | `drizzle-orm/bun-sql` | Native Bun SQL bindings — no `pg` package |
+| Database | `bun:sqlite` via `drizzle-orm/bun-sqlite` | Bun-native; no extra dependencies |
 | Auth | Better Auth | Org plugin for multi-tenancy; Drizzle adapter |
 | Infra | Hetzner VPS + Pulumi + Caddy | Full control; data residency; no managed lock-in |
 | Doc resolution | Live `llms.txt` fetch | Generated workspaces stay current; templates never go stale |

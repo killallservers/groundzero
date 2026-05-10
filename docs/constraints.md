@@ -15,7 +15,7 @@ Hard constraints for this codebase. Must be respected unconditionally.
 - Do not modify Drizzle-generated migration files, snapshots, or journal
 - Do not modify Better Auth tables manually — let `bunx auth@latest generate` manage them
 - Do not use `bun db:generate` + `migrate` — use `bun db:push` only
-- Do not use the `pg` package — use `drizzle-orm/bun-sql`
+- Do not use Postgres or any remote database — use `drizzle-orm/bun-sqlite` with `bun:sqlite`
 
 ### Code
 - Do not use Node.js built-ins or polyfills — Bun-native APIs only

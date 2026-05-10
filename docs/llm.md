@@ -21,7 +21,7 @@
 | Language   | TypeScript 7                        | `@typescript/native-preview`; no CommonJS  |
 | Runtime    | Bun                                 | No Node; single compiled binary output     |
 | Framework  | Hono                                | HTTP layer; runs on Bun and CF Workers     |
-| Database   | Postgres                            | Drizzle ORM via `drizzle-orm/bun-sql`      |
+| Database   | SQLite (`bun:sqlite`)               | Drizzle ORM via `drizzle-orm/bun-sqlite`; Bun-native     |
 | Auth       | Better Auth                         | Organization plugin for multi-tenancy      |
 | Infra      | Hetzner VPS                         | Pulumi provisioning; Caddy TLS; no Docker  |
 | Formatting | Biome                               | Replaces ESLint + Prettier                 |
@@ -45,7 +45,7 @@ src/                    — Phase 2+3 server code (Bun + Hono)
 - TypeScript 7 native — `@typescript/native-preview` as the TS compiler
 - Biome for all formatting and linting — no ESLint, no Prettier
 - ESM imports everywhere; no CommonJS
-- `drizzle-orm/bun-sql` for Postgres — no `pg` package
+- `drizzle-orm/bun-sqlite` for the database — Bun-native, no extra dependencies
 - `bun add <pkg>@latest` on the CLI — never write versions in `package.json` by hand
 - Drizzle schema changes via `bun db:push` only — never hand-edit migration files
 - kebab-case filenames; PascalCase types

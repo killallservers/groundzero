@@ -21,7 +21,7 @@ printf "\n"
 
 # Create directories
 mkdir -p docs .claude/specs
-for skill in align commit decision diagnose spec-create spec-review tdd zoom-out; do
+for skill in init align commit decision diagnose spec-create spec-review tdd zoom-out; do
   mkdir -p ".claude/skills/${skill}"
 done
 
@@ -45,7 +45,7 @@ fi
 
 # Download skills
 printf "\nDownloading skills...\n"
-for skill in align commit decision diagnose spec-create spec-review tdd zoom-out; do
+for skill in init align commit decision diagnose spec-create spec-review tdd zoom-out; do
   target=".claude/skills/${skill}/SKILL.md"
   curl -fsSL "${BASE}/.claude/skills/${skill}/SKILL.md" -o "$target"
   printf "  ✓  %s\n" "$target"

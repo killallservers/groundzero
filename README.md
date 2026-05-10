@@ -40,7 +40,7 @@ your-project/
     └── skills/                  # Workflow guides (TDD, spec, ADR, diagnose…)
 ```
 
-Fill in the `[TODO]` sections. Start building.
+Then run `/init` in Claude Code to fill in your project details.
 
 ## Why it works
 
@@ -53,6 +53,7 @@ The skills in `.claude/skills/` give it repeatable workflows: spec a feature, ru
 This repo uses spec-driven development with Claude Code.
 
 ```
+/init                    # Fill in your project details across all docs
 /spec-create <feature>   # Interview → spec → .claude/specs/<feature>.md
 /spec-review <feature>   # Review spec before implementing
 /decision <title>        # Log an architectural decision

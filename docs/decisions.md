@@ -6,22 +6,22 @@ Run `/decision` to add an entry.
 
 ---
 
-## ADR-007: drizzle-orm/bun-sql over node-postgres
+## ADR-007: SQLite (libsql) over Postgres
 
 **Date:** 2026-05-10
 **Status:** Accepted
 
 **Context:**
-Needed a Postgres client. node-postgres (`pg`) is the standard but adds a dependency and routes through Node.js compatibility shims.
+Phase 2 needs to persist pipeline session state between stages. Postgres requires a running server; for a tool that developers run locally, that's unnecessary friction.
 
 **Decision:**
-Use `drizzle-orm/bun-sql` — Drizzle's adapter for Bun's built-in `Bun.sql` PostgreSQL bindings.
+Use `bun:sqlite` via `drizzle-orm/bun-sqlite`. Bun-native, zero extra dependencies, consistent with using `bun-sql` for Postgres on the same stack.
 
 **Consequences:**
-- ✅ Zero extra dependencies — no `pg` package
-- ✅ Faster than node-postgres; native Bun bindings
-- ✅ Drizzle supports it natively
-- ⚠️ Bun-specific — acceptable given the stack commitment
+- ✅ Zero infrastructure to run — just a file
+- ✅ Works identically in development and CI
+- ✅ Drizzle supports libsql natively
+- ⚠️ Not suitable for multi-instance production deployments — acceptable until Phase 3 requires it
 
 ---
 

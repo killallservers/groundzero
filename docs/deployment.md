@@ -70,7 +70,7 @@ bun build --compile --target=bun src/index.ts --outfile=groundzero
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `DATABASE_URL` | Yes | Postgres connection string |
+| `DATABASE_PATH` | No | SQLite file path (default `./groundzero.db`) |
 | `BETTER_AUTH_SECRET` | Yes | Secret for signing sessions |
 | `GOOGLE_CLIENT_ID` | No | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | No | Google OAuth client secret |
