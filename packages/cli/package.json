@@ -1,0 +1,15 @@
+{
+  "name": "@groundzero/cli",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "groundzero": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "bun build --compile --bytecode --target=bun src/index.ts --outfile=../../dist/groundzero"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.3.0",
+    "@groundzero/core": "workspace:*"
+  }
+}

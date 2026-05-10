@@ -1,10 +1,12 @@
 {
   "name": "groundzero",
-  "version": "0.1.0",
+  "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "bun run --watch src/index.ts",
-    "build": "bun build --compile --target=bun src/index.ts --outfile=groundzero",
+    "dev": "bun run --watch packages/api/src/index.ts",
     "typecheck": "tsgo -p .",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
@@ -13,21 +15,8 @@
     "check:fix": "biome check --write .",
     "ci": "biome ci . && tsgo -p .",
     "db:generate": "bunx drizzle-kit generate",
-    "db:migrate": "bun run src/db/migrate.ts",
+    "db:migrate": "bun run packages/core/src/db/migrate.ts",
     "db:push": "bun run db:generate && bun run db:migrate"
-  },
-  "dependencies": {
-    "@ai-sdk/amazon-bedrock": "^4.0.103",
-    "@ai-sdk/anthropic": "^3.0.76",
-    "@ai-sdk/azure": "^3.0.64",
-    "@ai-sdk/cohere": "^3.0.35",
-    "@ai-sdk/google": "^3.0.71",
-    "@ai-sdk/mistral": "^3.0.36",
-    "@ai-sdk/openai": "^3.0.63",
-    "ai": "^6.0.177",
-    "drizzle-orm": "^0.45.2",
-    "hono": "^4.12.18",
-    "jszip": "^3.10.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",

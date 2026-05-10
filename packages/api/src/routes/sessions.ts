@@ -1,15 +1,18 @@
+import { db } from "@groundzero/core/db";
+import { sessions } from "@groundzero/core/db/schema";
+import { clarify } from "@groundzero/core/pipeline/clarify";
+import { draft } from "@groundzero/core/pipeline/draft";
+import { extract } from "@groundzero/core/pipeline/extract";
+import { generate } from "@groundzero/core/pipeline/generate";
+import { resolve } from "@groundzero/core/pipeline/resolve";
+import type {
+  PipelineEvent,
+  PipelineState,
+} from "@groundzero/core/pipeline/types";
+import { buildZip } from "@groundzero/core/pipeline/zip";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
-import { db } from "../db";
-import { sessions } from "../db/schema";
-import { clarify } from "../pipeline/clarify";
-import { draft } from "../pipeline/draft";
-import { extract } from "../pipeline/extract";
-import { generate } from "../pipeline/generate";
-import { resolve } from "../pipeline/resolve";
-import type { PipelineEvent, PipelineState } from "../pipeline/types";
-import { buildZip } from "../pipeline/zip";
 
 export const sessionsRouter = new Hono();
 
@@ -52,7 +55,6 @@ sessionsRouter.get("/:id/stream", (c) => {
     const state = session.state;
 
     try {
-      // Extract
       await emit({ type: "stage", stage: "extract" });
       const extracted = await extract(state.idea);
       if (!extracted) throw new Error("extract returned no result");
@@ -63,7 +65,6 @@ sessionsRouter.get("/:id/stream", (c) => {
         gaps: extracted.gaps,
       });
 
-      // Clarify
       await emit({ type: "stage", stage: "clarify" });
       const questions = await clarify(state.idea, extracted.gaps);
       state.questions = questions;
@@ -94,7 +95,6 @@ sessionsRouter.post("/:id/answers", async (c) => {
 
   const state = { ...session.state, answers };
 
-  // Resolve → Draft → Generate in the next SSE stream
   await db
     .update(sessions)
     .set({ stage: "resolve", state, updatedAt: new Date() })
@@ -125,13 +125,11 @@ sessionsRouter.get("/:id/run", (c) => {
     const state = session.state;
 
     try {
-      // Resolve
       await emit({ type: "stage", stage: "resolve" });
       const resolved = await resolve(state.answers ?? {});
       state.resolved = resolved;
       await emit({ type: "resolve:done", packages: resolved });
 
-      // Draft
       await emit({ type: "stage", stage: "draft" });
       const spec = await draft(state);
       state.spec = spec;

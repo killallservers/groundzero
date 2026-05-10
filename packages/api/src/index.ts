@@ -7,6 +7,6 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 app.route("/sessions", sessionsRouter);
 
 export default {
-  port: process.env.PORT ? Number(process.env.PORT) : 3000,
+  port: Bun.env.PORT ? Number(Bun.env.PORT) : 3000,
   fetch: app.fetch,
 };

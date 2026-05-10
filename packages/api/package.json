@@ -1,0 +1,14 @@
+{
+  "name": "@groundzero/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "build": "bun build --compile --bytecode --target=bun src/index.ts --outfile=../../dist/groundzero-server"
+  },
+  "dependencies": {
+    "@groundzero/core": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.12.18"
+  }
+}
