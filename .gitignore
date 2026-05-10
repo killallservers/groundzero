@@ -8,6 +8,12 @@
 
 # Build output
 dist/
+groundzero
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal
 
 # Dependencies
 node_modules/
