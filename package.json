@@ -13,8 +13,8 @@
     "format": "biome format --write .",
     "check": "biome check .",
     "check:fix": "biome check --write .",
-    "ci": "biome ci . && tsgo -p .",
-    "db:generate": "bunx drizzle-kit generate",
+    "ci": "biome ci . && bun run typecheck",
+    "db:generate": "bunx drizzle-kit generate --config packages/core/drizzle.config.ts",
     "db:migrate": "bun run packages/core/src/db/migrate.ts",
     "db:push": "bun run db:generate && bun run db:migrate"
   },
