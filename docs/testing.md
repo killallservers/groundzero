@@ -2,63 +2,101 @@
 
 ## Strategy
 
-Two testing layers:
+Three layers, all using Bun's built-in test runner:
 
-**Pipeline logic** (`packages/core`) — unit tests for each stage (extract, clarify, resolve, draft, generate) in isolation. Integration tests for the full pipeline with real filesystem output. No mocking the filesystem — use temp dirs.
+**Unit** (`packages/core`) — each pipeline stage (extract, clarify, resolve, draft, generate, zip) and the LLM factory tested in isolation with mocked dependencies.
 
-**Behavioral snapshots** — capture workspace ZIP output for a given spec + stack. On any pipeline change, diff new output against snapshots before shipping. This is the primary regression guard for generated content.
+**Integration** (`packages/api/src/routes/sessions.test.ts`) — full session router under Hono using an in-memory SQLite DB. All pipeline functions mocked.
 
-No E2E until Phase 3 (web UI) is live.
+**E2E** (`packages/api/src/e2e.test.ts`) — real `Bun.serve` started in `beforeAll`. All pipeline functions mocked. Tests the full HTTP lifecycle: create session → stream → answers → run → review → generate → download ZIP.
 
-## Tools
+**MCP** (`packages/mcp/src/mcp.test.ts`) — tool registration and handler behavior via a mock `McpServer` that captures registered tools.
 
-| Layer | Tool | Notes |
-|-------|------|-------|
-| Unit / Integration | Bun test runner | Built-in; no Jest needed |
-| Coverage | Bun coverage | 80% threshold configured in `bunfig.toml` |
-| Behavioral snapshots | Custom snapshot fixtures | Input spec + expected output ZIP manifest |
-
-## Test Setup
-
-`test-setup.ts` is loaded via `bunfig.toml` preload. It runs migrations against a test DB and truncates the sessions table between tests. The test DB path is set via `DATABASE_PATH` env var — must point to a separate file from the development DB.
-
-The migration uses the same bun-native migrator as production (`drizzle-orm/bun-sqlite/migrator`). No separate test infrastructure needed — SQLite is zero-config.
+---
 
 ## Running Tests
 
 ```sh
-# all tests (from root)
+# all tests (from root) — runs each package in a separate process
 bun test
 
-# watch mode
-bun test --watch
-
 # single package
-bun --filter @groundzero/core run test
+bun test packages/core
+bun test packages/api
+bun test packages/mcp
 
 # single file
 bun test packages/core/src/pipeline/extract.test.ts
-
-# run db migrations before first test run
-bun db:migrate
 ```
+
+> **Why separate processes?** Bun 1.3+ shares the module cache within a single `bun test` invocation. `mock.module()` in one file bleeds into others. Running each package as a separate `bun test` call gives process-level isolation.
+
+---
+
+## Mock Pattern
+
+All tests that rely on mocked dependencies must use dynamic import **after** calling `mock.module()`:
+
+```ts
+// ✅ correct
+mock.module("ai", () => ({ generateText: mockGenerateText }));
+const { extract } = await import("./extract.ts");
+
+// ❌ wrong — static import resolves before mock.module runs
+import { extract } from "./extract.ts";
+mock.module("ai", () => ({ generateText: mockGenerateText }));
+```
+
+---
+
+## Integration Test DB Setup
+
+Use `new Database(":memory:")` with an inline `CREATE TABLE` that mirrors the migration SQL exactly (backtick-quoted column names). Inject via `mock.module`:
+
+```ts
+const sqlite = new Database(":memory:");
+sqlite.exec(`CREATE TABLE IF NOT EXISTS \`sessions\` (...)`);
+const testDb = drizzle(sqlite, { schema: { sessions } });
+mock.module("@groundzero/core/db", () => ({ db: testDb }));
+```
+
+---
+
+## SSE Streams in Tests
+
+SSE handlers update the DB **after** writing to the stream. To assert DB state, consume the full response body before querying:
+
+```ts
+await (await app.request(`/${id}/stream`)).text(); // wait for stream to finish
+const row = await db.query.sessions.findFirst(...); // now DB is updated
+```
+
+---
+
+## Gotchas
+
+- **`toHaveProperty` with file path keys**: Bun interprets `.` in the key as a nested-path separator. Use `Object.keys(obj).toContain("docs/llm.md")` instead.
+- **`Response.json()` generics**: `res.json()` doesn't accept a type parameter. Use a typed helper: `async function json<T>(res: Response): Promise<T> { return res.json() as Promise<T>; }`
+
+---
+
+## Coverage
+
+93 tests across 11 files:
+
+| Package | Tests | Files |
+|---------|-------|-------|
+| `packages/mcp` | 21 | 1 (mcp.test.ts) |
+| `packages/core` | 45 | 8 (llm, extract, clarify, resolve, draft, generate, zip, schema) |
+| `packages/api` | 27 | 2 (sessions.test.ts, e2e.test.ts) |
+
+---
 
 ## Conventions
 
 - Test files co-located with source: `foo.ts` → `foo.test.ts`
-- Use domain language from `docs/context.md` in test descriptions
-- No mocking the database — tests hit the real SQLite test instance
-- No mocking the filesystem — integration tests use real temp dirs via `import.meta.dir`
-- Behavioral snapshots named by stack hash + spec ID
-
-## What Must Always Be Tested
-
-- Every pipeline stage in isolation (extract, clarify, resolve, draft, generate)
-- Full pipeline end-to-end: idea in → ZIP out
-- ZIP output structure matches expected workspace layout
-- Resolution handles network failures gracefully (timeout, 404, missing `llms.txt`)
-- Spec preservation: Intent must equal original user input verbatim
-- Behavioral snapshots: regenerating from the same spec produces matching output
+- Use `beforeEach` to reset mutable state (mock call counts, in-memory DB rows)
+- Never import from outside the package under test — use `mock.module()` for cross-package deps
 
 ---
 

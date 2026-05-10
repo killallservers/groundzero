@@ -79,10 +79,10 @@ bun --filter @groundzero/web run build
 | Key | Required | Default | Description |
 |-----|----------|---------|-------------|
 | `PORT` | No | `3000` | API HTTP port |
-| `DATABASE_PATH` | No | `packages/core/groundzero.db` | SQLite file path (resolved via `import.meta.url`) |
-| `BETTER_AUTH_SECRET` | Yes | — | Secret for signing sessions |
-| `GOOGLE_CLIENT_ID` | No | — | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | No | — | Google OAuth client secret |
+| `DATABASE_PATH` | No | resolved via `import.meta.url` | SQLite file path |
+| `BETTER_AUTH_SECRET` | Yes | — | Secret for signing Better Auth sessions |
+| `BETTER_AUTH_URL` | No | `http://localhost:3000` | Base URL the API is served at; used by Better Auth for cookie domain |
+| `WEB_URL` | No | `http://localhost:5173` | Trusted origin for CORS / cookie validation |
 
 ### LLM (`packages/core`)
 

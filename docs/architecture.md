@@ -5,8 +5,9 @@
 Ground Zero is a three-part product sharing one repository:
 
 1. **Phase 1 — Installer** (`install.sh`): a POSIX shell script that bootstraps any project directory with docs, skills, and AI config. Live.
-2. **Phase 2 — Agent Pipeline** (`packages/core`, `packages/api`, `packages/cli`): a stateful pipeline that takes a raw idea through Extract → Clarify → Resolve → Draft → Review → Generate → ZIP. Built.
-3. **Phase 3 — Web UI** (`packages/web`): a React frontend served by a Bun fullstack server. Scaffolded; real UI not yet implemented.
+2. **Phase 2 — Agent Pipeline** (`packages/core`, `packages/api`, `packages/cli`): a stateful pipeline that takes a raw idea through Extract → Clarify → Resolve → Draft → Review → Generate → ZIP. Complete.
+3. **Phase 3 — Web UI** (`packages/web`): a React frontend served by a Bun fullstack server. Complete — full pipeline UI from idea to ZIP download.
+4. **MCP Server** (`packages/mcp`): 6 granular MCP tools for LLM-orchestrated pipeline execution. Complete.
 
 ---
 
@@ -18,6 +19,7 @@ packages/
   api/          @groundzero/api    — Hono HTTP server; consumes core
   cli/          @groundzero/cli    — Ink terminal UI; consumes core; compiles to binary
   web/          @groundzero/web    — Bun fullstack frontend; proxies API calls to api
+  mcp/          @groundzero/mcp    — MCP server; 6 granular pipeline tools
 ```
 
 Bun workspaces (`"workspaces": ["packages/*"]`). Cross-package imports use `@groundzero/core/*` sub-paths. Run all commands from root using `bun --filter <package> run <script>`.
@@ -35,7 +37,7 @@ Phase 1 — Installer (live)
         ├── creates symlinks                → CLAUDE.md, AGENTS.md, .cursorrules
         └── substitutes placeholders        → PROJECT_NAME, github.com/org/repo
 
-Phase 2 — Agent Pipeline (built)
+Phase 2 — Core Pipeline (complete)
     packages/core/src/pipeline/
         extract.ts      — parse idea → present info + gaps (PipelineState.extracted)
         clarify.ts      — generate minimum Q&A from gaps
@@ -50,33 +52,52 @@ Phase 2 — Agent Pipeline (built)
 
     packages/core/src/db/
         schema.ts       — sessions table; PipelineState JSON column; PipelineStage enum
+        auth.schema.ts  — Better Auth tables (user, session, account, verification,
+                           organization, member, invitation) — maintained manually
         index.ts        — bun:sqlite connection + drizzle; DB path via import.meta.url
         migrate.ts      — bun-native migrator (drizzle-orm/bun-sqlite/migrator)
 
-Phase 2 — API (built)
+Phase 2 — API (complete)
     packages/api/src/index.ts
         — Hono app; port 3000 (Bun.env.PORT)
-        — Routes: GET /health, /sessions/*
+        — Routes: GET /health, GET+POST /auth/**, /sessions/*
+
+    packages/api/src/lib/auth.ts
+        — Better Auth instance; drizzle adapter + organization plugin
+        — emailAndPassword enabled; trusts web origin (BETTER_AUTH_URL, WEB_URL)
+
+    packages/api/src/middleware/session.ts
+        — sessionMiddleware: calls auth.api.getSession, attaches user + session to Hono context
+        — Applied to /sessions/* — route handlers access c.var.user, c.var.session
 
     packages/api/src/routes/sessions.ts
-        — Pipeline session CRUD + stage triggers
-        — Imports core pipeline functions via @groundzero/core/*
+        — Pipeline session CRUD + stage triggers (SSE streaming)
+        — POST /sessions, GET /sessions/:id/stream, POST /sessions/:id/answers,
+          GET /sessions/:id/run, POST /sessions/:id/review, GET /sessions/:id/generate,
+          GET /sessions/:id/download
 
-Phase 2 — CLI (built)
+Phase 2 — CLI (complete)
     packages/cli/src/index.tsx
         — Ink (React for CLIs) state machine
         — Stages: idea → extracting → clarifying → resolving → reviewing → generating → done
         — Compiles to standalone binary: bun build --compile --bytecode
 
-Phase 3 — Web UI (scaffolded)
+Phase 3 — Web UI (complete)
     packages/web/src/index.ts
         — Bun.serve with route map; port 5173 (Bun.env.PORT)
         — "/" → serves React SPA via Bun fullstack bundler (import from "./index.html")
         — "/api/*" → proxies to packages/api (Bun.env.API_PORT, default 3000)
 
     packages/web/src/App.tsx
-        — React + shadcn/ui; currently a template placeholder (APITester)
-        — Phase 3: replace with real workspace generator UI
+        — React + shadcn/ui
+        — Full pipeline UI: idea → clarify → review → generate → ZIP download
+
+MCP Server (complete)
+    packages/mcp/src/index.ts
+        — McpServer via @modelcontextprotocol/sdk; StdioServerTransport
+        — 6 tools: gz_extract, gz_clarify, gz_resolve, gz_draft, gz_generate, gz_zip
+        — Each tool wraps the corresponding core pipeline function
+        — gz_zip: writes ZIP to outputPath (defaults to /tmp/groundzero-<ts>.zip)
 ```
 
 ---
@@ -84,7 +105,7 @@ Phase 3 — Web UI (scaffolded)
 ## Pipeline Flow
 
 ```
-Browser / CLI
+Browser / CLI / MCP
     ↓ idea (freeform text)
 Extract      — parse idea → present info + gaps
     ↓
@@ -105,13 +126,30 @@ Any stage can loop back. State is carried — not restarted. The `PipelineState`
 
 ---
 
+## Auth Flow
+
+```
+Request
+    ↓
+sessionMiddleware (packages/api/src/middleware/session.ts)
+    → auth.api.getSession(headers)
+    → c.set("user", ...) / c.set("session", ...)
+    ↓
+Route handler
+    → reads c.var.user / c.var.session (null if unauthenticated)
+```
+
+Better Auth handles sign-up/sign-in/sign-out/session refresh at `GET+POST /auth/**`. The session cookie is set by Better Auth; `sessionMiddleware` reads it on every protected request.
+
+---
+
 ## Key Design Decisions
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | Runtime | Bun | Single binary, TypeScript-native, fast startup, native SQLite |
 | TypeScript | TypeScript 7 (`@typescript/native-preview` / `tsgo`) | Native TS compilation; 10× faster than tsc |
-| Monorepo | Bun workspaces | `packages/{api,cli,core,web}`; `bun --filter` for root scripts |
+| Monorepo | Bun workspaces | `packages/{api,cli,core,web,mcp}`; `bun --filter` for root scripts |
 | HTTP | Hono | Runs on Bun and CF Workers; SSE via `streamSSE`; typed RPC |
 | CLI | Ink | React for CLIs; 38k stars; used by Prisma/GitHub Copilot; state machine pattern |
 | Database | `bun:sqlite` via `drizzle-orm/bun-sqlite` | Bun-native; no extra dependencies; zero infrastructure |
@@ -119,6 +157,7 @@ Any stage can loop back. State is carried — not restarted. The `PipelineState`
 | DB location | `packages/core/` | Schema, migrations, config, and `.db` files all co-located |
 | LLM | Vercel AI SDK (Apache 2.0) | Unified `generateText()` across all providers; env var driven |
 | Auth | Better Auth | Local, in-process; organization plugin for multi-tenancy |
+| Auth schema | Hand-written | Better Auth CLI uses jiti internally, which cannot resolve `bun:sqlite` |
 | Infra | Hetzner VPS + Pulumi + Caddy | Full control; data residency; no managed lock-in |
 | Doc resolution | Live `llms.txt` fetch | Generated workspaces stay current; templates never go stale |
 
