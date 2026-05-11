@@ -22,14 +22,25 @@ export async function generate(
 ): Promise<Record<string, string>> {
   const files: Record<string, string> = {};
 
+  const customDocsContext = state.customDocs
+    ?.map((d) => `## ${d.url}\n${d.content}`)
+    .join("\n\n");
+
   await Promise.all(
     WORKSPACE_FILES.map(async (filename) => {
       const { text } = await generateText({
         model: getModel(),
         maxOutputTokens: 2048,
-        system: `You are generating documentation files for a new software project workspace.
-Write clear, factual, project-specific content — no placeholder text.
-Return only the file content with no preamble.`,
+        system: [
+          "You are generating documentation files for a new software project workspace.",
+          "Write clear, factual, project-specific content — no placeholder text.",
+          "Return only the file content with no preamble.",
+          customDocsContext
+            ? `\nAdditional reference docs provided by the user:\n\n${customDocsContext}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join("\n"),
         messages: [
           {
             role: "user",

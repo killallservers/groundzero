@@ -3,10 +3,16 @@ import { getModel } from "../lib/llm";
 import type { PipelineState } from "./types";
 
 export async function draft(state: PipelineState): Promise<string> {
-  const docsContext = state.resolved?.packages
+  const packageDocs = state.resolved?.packages
     .filter((p) => p.llmsTxt)
     .map((p) => `## ${p.name} (${p.version})\n${p.llmsTxt}`)
     .join("\n\n");
+
+  const customDocs = state.customDocs
+    ?.map((d) => `## ${d.url}\n${d.content}`)
+    .join("\n\n");
+
+  const docsContext = [packageDocs, customDocs].filter(Boolean).join("\n\n") || undefined;
 
   const decisions = Object.entries(state.answers ?? {})
     .map(([q, a]) => `- ${q}: ${a}`)

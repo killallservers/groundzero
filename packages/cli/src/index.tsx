@@ -105,6 +105,8 @@ type Stage =
 			current: number;
 			answers: Record<string, string>;
 	  }
+	| { name: "links"; state: PipelineState; urls: string[] }
+	| { name: "fetching-docs"; state: PipelineState; urls: string[] }
 	| { name: "resolving"; state: PipelineState }
 	| { name: "reviewing"; state: PipelineState; spec: string }
 	| { name: "generating"; state: PipelineState }
@@ -146,8 +148,9 @@ function App() {
 				const questions = await clarify(idea, extracted.gaps);
 				if (questions.length === 0) {
 					setStage({
-						name: "resolving",
+						name: "links",
 						state: { idea, extracted, questions: [], answers: {} },
+						urls: [],
 					});
 				} else {
 					setStage({
@@ -159,6 +162,38 @@ function App() {
 						answers: {},
 					});
 				}
+			} catch (err) {
+				fail(err);
+			}
+		})();
+	}, [stage, done, fail]);
+
+	// Fetch custom docs then resolve
+	useEffect(() => {
+		if (stage.name !== "fetching-docs") return;
+		const { state, urls } = stage;
+		(async () => {
+			try {
+				const results = await Promise.all(
+					urls.map(async (url) => {
+						try {
+							const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+							const text = await res.text();
+							return { url, content: text.slice(0, 3000) };
+						} catch {
+							return null;
+						}
+					}),
+				);
+				const customDocs = results.filter(
+					(r): r is { url: string; content: string } => r !== null,
+				);
+				const fetched = customDocs.length;
+				const skipped = urls.length - fetched;
+				done(
+					`${fetched} doc${fetched === 1 ? "" : "s"} fetched${skipped > 0 ? `, ${skipped} skipped` : ""}`,
+				);
+				setStage({ name: "resolving", state: { ...state, customDocs } });
 			} catch (err) {
 				fail(err);
 			}
@@ -266,17 +301,56 @@ function App() {
 							});
 						} else {
 							setStage({
-								name: "resolving",
+								name: "links",
 								state: {
 									idea,
 									extracted,
 									questions: Object.keys(updated),
 									answers: updated,
 								},
+								urls: [],
 							});
 						}
 					}}
 				/>
+			)}
+
+			{stage.name === "links" && (
+				<Box flexDirection="column" gap={1}>
+					{stage.urls.map((url) => (
+						<Step key={url} label={url} />
+					))}
+					<Prompt
+						label={
+							stage.urls.length === 0
+								? "Any relevant docs? (paste a URL, or press Enter to continue)"
+								: "Another link? (or press Enter to continue)"
+						}
+						value={input}
+						onChange={setInput}
+						onSubmit={(value) => {
+							const url = value.trim();
+							setInput("");
+							if (!url) {
+								if (stage.urls.length === 0) {
+									setStage({ name: "resolving", state: stage.state });
+								} else {
+									setStage({
+										name: "fetching-docs",
+										state: stage.state,
+										urls: stage.urls,
+									});
+								}
+							} else {
+								setStage({ ...stage, urls: [...stage.urls, url] });
+							}
+						}}
+					/>
+				</Box>
+			)}
+
+			{stage.name === "fetching-docs" && (
+				<Busy label={`Fetching ${stage.urls.length} doc${stage.urls.length === 1 ? "" : "s"}…`} />
 			)}
 
 			{stage.name === "resolving" && (

@@ -21,6 +21,7 @@ export type PipelineState = {
   resolved?: {
     packages: Array<{ name: string; version: string; llmsTxt?: string }>;
   };
+  customDocs?: Array<{ url: string; content: string }>;
   spec?: string;
   files?: Record<string, string>;
 };
