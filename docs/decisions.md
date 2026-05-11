@@ -6,6 +6,31 @@ Run `/decision` to add an entry.
 
 ---
 
+## ADR-013: Ink over @clack/prompts for the CLI
+
+**Date:** 2026-05-11
+**Status:** Accepted
+
+**Context:**
+The CLI UX was sparse. Two options were evaluated to improve it: `@clack/prompts` (linear wizard API with a polished built-in design system) and continuing with Ink (React for CLIs, reactive state machine).
+
+**Options Considered:**
+- `@clack/prompts`: sequential async API, beautiful out-of-the-box design (vertical guide bar, state symbols), zero React overhead. Dead end architecturally — no upgrade path.
+- Ink: React component model, reactive rendering, more code for simple cases. Upgrade path: `@ratatat/react` is an Ink-compatible drop-in backed by a Rust diff engine (30× faster renders, 700 FPS, full TUI capability).
+
+**Decision:**
+Ink. The pipeline has a natural live-streaming use case (watching the spec generate token by token) that requires Ink's reactive model. More importantly, `@ratatat/react` provides an Ink-compatible API — code written against Ink today can migrate to ratatat with an import swap and no logic changes.
+
+The CLI visual design adopts clack's language (◆/◇ symbols, │/└ guide bar, cyan/green/dim palette) implemented as Ink components, so the aesthetics match without taking the architectural dependency.
+
+**Consequences:**
+- ✅ Reactive model enables future LLM streaming directly in the terminal
+- ✅ Drop-in ratatat upgrade when the library stabilises
+- ✅ Clack-inspired visuals without the clack dependency
+- ⚠️ More verbose than clack for purely sequential flows
+
+---
+
 ## ADR-012: Drizzle artifacts co-located in packages/core
 
 **Date:** 2026-05-10

@@ -21,7 +21,7 @@
 | Language   | TypeScript 7                            | `@typescript/native-preview` (`tsgo`); no CommonJS           |
 | Runtime    | Bun                                     | Bun only — never `node`; `Bun.env` not `process.env`         |
 | Framework  | Hono                                    | HTTP layer; runs on Bun and CF Workers                       |
-| CLI        | Ink                                     | React for CLIs; state machine pattern; compiles to binary    |
+| CLI        | Ink                                     | React for CLIs; state machine pattern; compiles to binary; ratatat upgrade path |
 | Database   | SQLite (`bun:sqlite`)                   | Drizzle ORM via `drizzle-orm/bun-sqlite`; Bun-native         |
 | LLM        | Vercel AI SDK (`ai`)                    | Multi-provider; factory in `packages/core/src/lib/llm.ts`    |
 | Auth       | Better Auth                             | Organization plugin; schema maintained manually (jiti incompatible with `bun:sqlite`) |

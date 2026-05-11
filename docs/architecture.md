@@ -78,9 +78,12 @@ Phase 2 — API (complete)
 
 Phase 2 — CLI (complete)
     packages/cli/src/index.tsx
-        — Ink (React for CLIs) state machine
+        — Ink (React for CLIs) state machine; clack-inspired visual design
+        — Symbols: ◆ active, ◇ done; colors: cyan (active), green (done), dim (secondary)
+        — Components: Step, Busy, Prompt (with │/└ guide bar), NoteBox (spec preview)
         — Stages: idea → extracting → clarifying → resolving → reviewing → generating → done
         — On completion writes all generated files (docs/, CLAUDE.md) to process.cwd()
+        — Ink chosen over @clack/prompts for ratatat upgrade path (Ink-compatible API)
         — Compiles to standalone binary: bun build --compile --bytecode
 
 Phase 3 — Web UI (complete)
