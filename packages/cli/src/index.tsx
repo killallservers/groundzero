@@ -65,11 +65,11 @@ function Prompt({
 				<Text bold>{label}</Text>
 				{hint !== undefined && <Text dimColor>{hint}</Text>}
 			</Box>
+			<Text color="cyan">{S.bar}</Text>
 			<Box gap={1}>
-				<Text color="cyan">{S.bar}</Text>
+				<Text color="cyan">{S.barEnd}</Text>
 				<TextInput value={value} onChange={onChange} onSubmit={onSubmit} />
 			</Box>
-			<Text color="cyan">{S.barEnd}</Text>
 		</Box>
 	);
 }
