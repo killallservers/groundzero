@@ -51,11 +51,11 @@ mock.module("ai", () => ({ generateText: mockGenerateText }));
 
 ## Integration Test DB Setup
 
-Use `new Database(":memory:")` with an inline `CREATE TABLE` that mirrors the migration SQL exactly (backtick-quoted column names). Inject via `mock.module`:
+Use `new Database(":memory:")` with an inline `CREATE TABLE` that mirrors the migration SQL exactly (backtick-quoted column names). Inject via `mock.module`. Use `sqlite.run()` not `sqlite.exec()` (the multi-arg overload of `exec` is deprecated):
 
 ```ts
 const sqlite = new Database(":memory:");
-sqlite.exec(`CREATE TABLE IF NOT EXISTS \`sessions\` (...)`);
+sqlite.run(`CREATE TABLE IF NOT EXISTS \`sessions\` (...)`);
 const testDb = drizzle(sqlite, { schema: { sessions } });
 mock.module("@groundzero/core/db", () => ({ db: testDb }));
 ```
@@ -87,7 +87,7 @@ const row = await db.query.sessions.findFirst(...); // now DB is updated
 | Package | Tests | Files |
 |---------|-------|-------|
 | `packages/mcp` | 21 | 1 (mcp.test.ts) |
-| `packages/core` | 45 | 8 (llm, extract, clarify, resolve, draft, generate, zip, schema) |
+| `packages/core` | 49 | 8 (llm, extract, clarify, resolve, draft, generate, zip, schema) |
 | `packages/api` | 27 | 2 (sessions.test.ts, e2e.test.ts) |
 
 ---

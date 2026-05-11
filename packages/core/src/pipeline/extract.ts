@@ -1,6 +1,17 @@
 import { generateText } from "ai";
+import { z } from "zod";
 import { getModel } from "../lib/llm";
 import type { PipelineState } from "./types";
+
+const ExtractSchema = z.object({
+  present: z.array(z.string()),
+  gaps: z.array(z.string()),
+});
+
+function stripFences(text: string): string {
+  const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  return match ? match[1]!.trim() : text.trim();
+}
 
 export async function extract(
   idea: string,
@@ -8,18 +19,11 @@ export async function extract(
   const { text } = await generateText({
     model: getModel(),
     maxOutputTokens: 1024,
-    prompt: `Analyse this project idea and identify what information is present and what is missing.
-
-Idea: ${idea}
-
-Respond with JSON in this exact shape:
-{
-  "present": ["things we already know from the idea"],
-  "gaps": ["things we need to ask about before generating a workspace"]
-}
-
-Be specific. "gaps" should only include things that genuinely affect the generated workspace — stack choices, auth requirements, deployment target, etc. Don't ask about things that can be inferred or defaulted.`,
+    system: `Analyse project ideas and identify what information is present and what is missing.
+Return JSON: { "present": string[], "gaps": string[] }
+"gaps" must only include things that genuinely affect the generated workspace — stack choices, auth requirements, deployment target, scaling needs. Omit anything that can be inferred or defaulted.`,
+    messages: [{ role: "user", content: idea }],
   });
 
-  return JSON.parse(text);
+  return ExtractSchema.parse(JSON.parse(stripFences(text)));
 }

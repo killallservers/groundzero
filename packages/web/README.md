@@ -2,15 +2,12 @@
 
 Bun fullstack server + React frontend. Serves the Ground Zero web UI and proxies API calls to `@groundzero/api`.
 
-**Status:** Scaffolded. The real workspace generator UI is Phase 3 — `src/App.tsx` currently contains the `bun init --react=shadcn` template.
+Full pipeline UI: idea → clarifying questions → spec review → workspace generation → ZIP download.
 
 ## Dev
 
 ```sh
-# from repo root (starts web server with HMR)
-bun --filter @groundzero/web run dev
-
-# also start the API server in another terminal
+# from repo root (starts API on :3000 + web on :5173)
 bun dev
 ```
 

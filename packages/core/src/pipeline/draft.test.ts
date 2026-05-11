@@ -8,6 +8,16 @@ mock.module("ai", () => ({ generateText: mockGenerateText }));
 
 const { draft } = await import("./draft.ts");
 
+type DraftOpts = {
+  system?: string;
+  messages?: Array<{ role: string; content: string }>;
+  maxOutputTokens?: number;
+};
+
+function getOpts(): DraftOpts {
+  return mockGenerateText.mock.calls[0]?.[0] as DraftOpts;
+}
+
 describe("draft", () => {
   beforeEach(() => mockGenerateText.mockClear());
 
@@ -16,30 +26,31 @@ describe("draft", () => {
     expect(result).toBe("# Spec\n\n## Problem\n\nA todo app.");
   });
 
-  test("includes idea in the prompt", async () => {
+  test("includes idea in the user message", async () => {
     await draft({ idea: "a blog platform with RSS" });
-    const opts = mockGenerateText.mock.calls[0]?.[0] as { prompt: string };
-    expect(opts.prompt).toContain("a blog platform with RSS");
+    expect(getOpts().messages?.[0]?.content).toContain(
+      "a blog platform with RSS",
+    );
   });
 
-  test("includes present items from extracted in the prompt", async () => {
+  test("includes present items from extracted in the user message", async () => {
     await draft({
       idea: "app",
       extracted: { present: ["React frontend", "Postgres DB"], gaps: [] },
     });
-    const opts = mockGenerateText.mock.calls[0]?.[0] as { prompt: string };
-    expect(opts.prompt).toContain("React frontend");
-    expect(opts.prompt).toContain("Postgres DB");
+    const content = getOpts().messages?.[0]?.content ?? "";
+    expect(content).toContain("React frontend");
+    expect(content).toContain("Postgres DB");
   });
 
-  test("includes Q&A answers in the prompt", async () => {
+  test("includes Q&A answers in the user message", async () => {
     await draft({
       idea: "app",
       answers: { "Which auth provider?": "Better Auth" },
     });
-    const opts = mockGenerateText.mock.calls[0]?.[0] as { prompt: string };
-    expect(opts.prompt).toContain("Which auth provider?");
-    expect(opts.prompt).toContain("Better Auth");
+    const content = getOpts().messages?.[0]?.content ?? "";
+    expect(content).toContain("Which auth provider?");
+    expect(content).toContain("Better Auth");
   });
 
   test("sets llmsTxt packages as system context", async () => {
@@ -49,22 +60,17 @@ describe("draft", () => {
         packages: [{ name: "hono", version: "4.0.0", llmsTxt: "# Hono docs" }],
       },
     });
-    const opts = mockGenerateText.mock.calls[0]?.[0] as { system?: string };
-    expect(opts.system).toContain("# Hono docs");
-    expect(opts.system).toContain("hono");
+    expect(getOpts().system).toContain("# Hono docs");
+    expect(getOpts().system).toContain("hono");
   });
 
-  test("omits system context when no resolved packages", async () => {
+  test("always sets a system prompt", async () => {
     await draft({ idea: "app" });
-    const opts = mockGenerateText.mock.calls[0]?.[0] as { system?: string };
-    expect(opts.system).toBeUndefined();
+    expect(getOpts().system).toBeDefined();
   });
 
   test("limits output to 4096 tokens", async () => {
     await draft({ idea: "app" });
-    const opts = mockGenerateText.mock.calls[0]?.[0] as {
-      maxOutputTokens: number;
-    };
-    expect(opts.maxOutputTokens).toBe(4096);
+    expect(getOpts().maxOutputTokens).toBe(4096);
   });
 });

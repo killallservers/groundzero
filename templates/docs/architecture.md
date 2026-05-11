@@ -30,7 +30,7 @@
 |----------|--------|-----------|
 | Runtime | Bun | Single binary, TypeScript-native, native SQL bindings |
 | HTTP | Hono | Runs on Bun and CF Workers; typed RPC; native SSE |
-| Postgres driver | `drizzle-orm/bun-sql` | Native Bun bindings — no `pg` package |
+| Database | `drizzle-orm/bun-sqlite` with `bun:sqlite` | Bun-native SQLite; no `better-sqlite3`, no managed DB |
 | Auth | Better Auth | Framework-agnostic; org plugin for multi-tenancy |
 | Infra | Hetzner VPS + Pulumi + Caddy | Full control; data residency; no managed lock-in |
 | [TODO] | [TODO] | [TODO] |

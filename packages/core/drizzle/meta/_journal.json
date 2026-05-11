@@ -15,6 +15,13 @@
       "when": 1778411446372,
       "tag": "0001_shocking_gorgon",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1778485496374,
+      "tag": "0002_deep_randall",
+      "breakpoints": true
     }
   ]
 }

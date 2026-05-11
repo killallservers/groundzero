@@ -27,6 +27,7 @@ export type PipelineState = {
 
 export const sessions = sqliteTable("sessions", {
   id: text("id").primaryKey(),
+  userId: text("user_id"),
   stage: text("stage").$type<PipelineStage>().notNull().default("extract"),
   idea: text("idea").notNull(),
   state: text("state", { mode: "json" }).$type<PipelineState>().notNull(),

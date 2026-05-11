@@ -10,13 +10,17 @@ import type {
   PipelineState,
 } from "@groundzero/core/pipeline/types";
 import { buildZip } from "@groundzero/core/pipeline/zip";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
+import type { AuthVariables } from "../middleware/session";
 
-export const sessionsRouter = new Hono();
+export const sessionsRouter = new Hono<{ Variables: AuthVariables }>();
 
 sessionsRouter.post("/", async (c) => {
+  const user = c.var.user;
+  if (!user) return c.json({ error: "unauthorized" }, 401);
+
   const { idea } = await c.req.json<{ idea: string }>();
   if (!idea?.trim()) return c.json({ error: "idea is required" }, 400);
 
@@ -26,6 +30,7 @@ sessionsRouter.post("/", async (c) => {
 
   await db.insert(sessions).values({
     id,
+    userId: user.id,
     stage: "extract",
     idea,
     state,
@@ -37,6 +42,7 @@ sessionsRouter.post("/", async (c) => {
 });
 
 sessionsRouter.get("/:id/stream", (c) => {
+  const user = c.var.user;
   const id = c.req.param("id");
 
   return streamSSE(c, async (stream) => {
@@ -44,8 +50,13 @@ sessionsRouter.get("/:id/stream", (c) => {
       await stream.writeSSE({ data: JSON.stringify(event) });
     };
 
+    if (!user) {
+      await emit({ type: "error", message: "unauthorized" });
+      return;
+    }
+
     const session = await db.query.sessions.findFirst({
-      where: eq(sessions.id, id),
+      where: and(eq(sessions.id, id), eq(sessions.userId, user.id)),
     });
     if (!session) {
       await emit({ type: "error", message: "session not found" });
@@ -71,7 +82,7 @@ sessionsRouter.get("/:id/stream", (c) => {
       await db
         .update(sessions)
         .set({ stage: "clarify", state, updatedAt: new Date() })
-        .where(eq(sessions.id, id));
+        .where(and(eq(sessions.id, id), eq(sessions.userId, user.id)));
       await emit({ type: "clarify:questions", questions });
 
       // Stream pauses here — client must POST /:id/answers to resume
@@ -85,11 +96,14 @@ sessionsRouter.get("/:id/stream", (c) => {
 });
 
 sessionsRouter.post("/:id/answers", async (c) => {
+  const user = c.var.user;
+  if (!user) return c.json({ error: "unauthorized" }, 401);
+
   const id = c.req.param("id");
   const { answers } = await c.req.json<{ answers: Record<string, string> }>();
 
   const session = await db.query.sessions.findFirst({
-    where: eq(sessions.id, id),
+    where: and(eq(sessions.id, id), eq(sessions.userId, user.id)),
   });
   if (!session) return c.json({ error: "session not found" }, 404);
 
@@ -98,12 +112,13 @@ sessionsRouter.post("/:id/answers", async (c) => {
   await db
     .update(sessions)
     .set({ stage: "resolve", state, updatedAt: new Date() })
-    .where(eq(sessions.id, id));
+    .where(and(eq(sessions.id, id), eq(sessions.userId, user.id)));
 
   return c.json({ ok: true });
 });
 
 sessionsRouter.get("/:id/run", (c) => {
+  const user = c.var.user;
   const id = c.req.param("id");
 
   return streamSSE(c, async (stream) => {
@@ -111,8 +126,13 @@ sessionsRouter.get("/:id/run", (c) => {
       await stream.writeSSE({ data: JSON.stringify(event) });
     };
 
+    if (!user) {
+      await emit({ type: "error", message: "unauthorized" });
+      return;
+    }
+
     const session = await db.query.sessions.findFirst({
-      where: eq(sessions.id, id),
+      where: and(eq(sessions.id, id), eq(sessions.userId, user.id)),
     });
     if (!session || session.stage !== "resolve") {
       await emit({
@@ -136,7 +156,7 @@ sessionsRouter.get("/:id/run", (c) => {
       await db
         .update(sessions)
         .set({ stage: "review", state, updatedAt: new Date() })
-        .where(eq(sessions.id, id));
+        .where(and(eq(sessions.id, id), eq(sessions.userId, user.id)));
       await emit({ type: "draft:done", spec });
       await emit({ type: "review:ready" });
     } catch (err) {
@@ -149,6 +169,9 @@ sessionsRouter.get("/:id/run", (c) => {
 });
 
 sessionsRouter.post("/:id/review", async (c) => {
+  const user = c.var.user;
+  if (!user) return c.json({ error: "unauthorized" }, 401);
+
   const id = c.req.param("id");
   const { action, spec } = await c.req.json<{
     action: "confirm" | "edit";
@@ -156,7 +179,7 @@ sessionsRouter.post("/:id/review", async (c) => {
   }>();
 
   const session = await db.query.sessions.findFirst({
-    where: eq(sessions.id, id),
+    where: and(eq(sessions.id, id), eq(sessions.userId, user.id)),
   });
   if (!session) return c.json({ error: "session not found" }, 404);
 
@@ -168,12 +191,13 @@ sessionsRouter.post("/:id/review", async (c) => {
       state,
       updatedAt: new Date(),
     })
-    .where(eq(sessions.id, id));
+    .where(and(eq(sessions.id, id), eq(sessions.userId, user.id)));
 
   return c.json({ ok: true });
 });
 
 sessionsRouter.get("/:id/generate", (c) => {
+  const user = c.var.user;
   const id = c.req.param("id");
 
   return streamSSE(c, async (stream) => {
@@ -181,8 +205,13 @@ sessionsRouter.get("/:id/generate", (c) => {
       await stream.writeSSE({ data: JSON.stringify(event) });
     };
 
+    if (!user) {
+      await emit({ type: "error", message: "unauthorized" });
+      return;
+    }
+
     const session = await db.query.sessions.findFirst({
-      where: eq(sessions.id, id),
+      where: and(eq(sessions.id, id), eq(sessions.userId, user.id)),
     });
     if (!session || session.stage !== "generate") {
       await emit({
@@ -201,12 +230,12 @@ sessionsRouter.get("/:id/generate", (c) => {
       await db
         .update(sessions)
         .set({ stage: "zip", state, updatedAt: new Date() })
-        .where(eq(sessions.id, id));
+        .where(and(eq(sessions.id, id), eq(sessions.userId, user.id)));
       await emit({ type: "generate:done", files });
       await db
         .update(sessions)
         .set({ stage: "done", state, updatedAt: new Date() })
-        .where(eq(sessions.id, id));
+        .where(and(eq(sessions.id, id), eq(sessions.userId, user.id)));
       await emit({ type: "zip:ready", sessionId: id });
     } catch (err) {
       await emit({
@@ -218,10 +247,13 @@ sessionsRouter.get("/:id/generate", (c) => {
 });
 
 sessionsRouter.get("/:id/download", async (c) => {
+  const user = c.var.user;
+  if (!user) return c.json({ error: "unauthorized" }, 401);
+
   const id = c.req.param("id");
 
   const session = await db.query.sessions.findFirst({
-    where: eq(sessions.id, id),
+    where: and(eq(sessions.id, id), eq(sessions.userId, user.id)),
   });
   if (!session) return c.json({ error: "session not found" }, 404);
   if (session.stage !== "done")

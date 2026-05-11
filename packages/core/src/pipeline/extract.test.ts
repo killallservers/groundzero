@@ -22,11 +22,31 @@ describe("extract", () => {
     });
   });
 
-  test("calls generateText with idea in the prompt", async () => {
+  test("uses system/user message split — idea is in messages, not system", async () => {
     await extract("a CLI tool for git");
     expect(mockGenerateText).toHaveBeenCalledTimes(1);
-    const opts = mockGenerateText.mock.calls[0]?.[0] as { prompt: string };
-    expect(opts.prompt).toContain("a CLI tool for git");
+    const opts = mockGenerateText.mock.calls[0]?.[0] as {
+      system?: string;
+      messages?: Array<{ role: string; content: string }>;
+    };
+    expect(opts.system).toBeDefined();
+    expect(opts.messages?.[0]?.content).toContain("a CLI tool for git");
+    expect(opts.system).not.toContain("a CLI tool for git");
+  });
+
+  test("strips markdown fences from LLM output", async () => {
+    mockGenerateText.mockImplementationOnce(async () => ({
+      text: '```json\n{"present":["Node"],"gaps":[]}\n```',
+    }));
+    const result = await extract("a node app");
+    expect(result).toEqual({ present: ["Node"], gaps: [] });
+  });
+
+  test("throws when output fails Zod validation", async () => {
+    mockGenerateText.mockImplementationOnce(async () => ({
+      text: JSON.stringify({ present: "not an array", gaps: [] }),
+    }));
+    expect(extract("bad output")).rejects.toThrow();
   });
 
   test("limits output tokens to 1024", async () => {

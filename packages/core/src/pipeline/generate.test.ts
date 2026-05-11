@@ -1,14 +1,12 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 
-const mockFiles = {
-  "docs/llm.md": "# Project",
-  "docs/architecture.md": "# Architecture",
-  "docs/constraints.md": "# Constraints",
-};
-
-const mockGenerateText = mock(async (_opts: unknown) => ({
-  text: JSON.stringify(mockFiles),
-}));
+// generate() calls generateText once per file in parallel — return file-specific content
+const mockGenerateText = mock(async (opts: unknown) => {
+  const { messages } = opts as { messages: Array<{ content: string }> };
+  const filename =
+    messages?.[0]?.content?.match(/Write ([\w/.]+)/)?.[1] ?? "unknown";
+  return { text: `# Content for ${filename}` };
+});
 
 mock.module("ai", () => ({ generateText: mockGenerateText }));
 
@@ -17,36 +15,51 @@ const { generate } = await import("./generate.ts");
 describe("generate", () => {
   beforeEach(() => mockGenerateText.mockClear());
 
-  test("returns parsed file tree from LLM response", async () => {
+  test("returns a file tree with all 7 workspace docs plus CLAUDE.md", async () => {
     const result = await generate({ idea: "app", spec: "# Spec" });
-    expect(result).toEqual(mockFiles);
+    expect(Object.keys(result)).toContain("docs/llm.md");
+    expect(Object.keys(result)).toContain("docs/architecture.md");
+    expect(Object.keys(result)).toContain("docs/constraints.md");
+    expect(Object.keys(result)).toContain("docs/decisions.md");
+    expect(Object.keys(result)).toContain("docs/context.md");
+    expect(Object.keys(result)).toContain("docs/testing.md");
+    expect(Object.keys(result)).toContain("docs/deployment.md");
+    expect(result["CLAUDE.md"]).toBe("→ docs/llm.md");
   });
 
-  test("includes spec in the prompt", async () => {
-    await generate({ idea: "app", spec: "# My Spec\n\nProject details" });
-    const opts = mockGenerateText.mock.calls[0]?.[0] as { prompt: string };
-    expect(opts.prompt).toContain("# My Spec");
-    expect(opts.prompt).toContain("Project details");
-  });
-
-  test("throws when LLM returns invalid JSON", async () => {
-    mockGenerateText.mockImplementationOnce(async () => ({
-      text: "here are the files: ...",
-    }));
-    expect(generate({ idea: "app", spec: "spec" })).rejects.toThrow();
-  });
-
-  test("limits output to 8192 tokens", async () => {
+  test("calls generateText once per file (7 parallel calls)", async () => {
     await generate({ idea: "app", spec: "# Spec" });
-    const opts = mockGenerateText.mock.calls[0]?.[0] as {
-      maxOutputTokens: number;
-    };
-    expect(opts.maxOutputTokens).toBe(8192);
+    expect(mockGenerateText).toHaveBeenCalledTimes(7);
   });
 
-  test("returns empty object when LLM returns {}", async () => {
-    mockGenerateText.mockImplementationOnce(async () => ({ text: "{}" }));
-    const result = await generate({ idea: "app", spec: "spec" });
-    expect(result).toEqual({});
+  test("includes spec in each file's user message", async () => {
+    await generate({ idea: "app", spec: "# My Spec\n\nProject details" });
+    const allContent = mockGenerateText.mock.calls
+      .map((call) => {
+        const opts = call[0] as { messages?: Array<{ content: string }> };
+        return opts.messages?.[0]?.content ?? "";
+      })
+      .join(" ");
+    expect(allContent).toContain("# My Spec");
+  });
+
+  test("limits output to 2048 tokens per file", async () => {
+    await generate({ idea: "app", spec: "# Spec" });
+    for (const call of mockGenerateText.mock.calls) {
+      const opts = call[0] as { maxOutputTokens: number };
+      expect(opts.maxOutputTokens).toBe(2048);
+    }
+  });
+
+  test("strips markdown fences from file content", async () => {
+    mockGenerateText.mockImplementation(async () => ({
+      text: "```markdown\n# Actual content\n```",
+    }));
+    const result = await generate({ idea: "app", spec: "# Spec" });
+    for (const [key, value] of Object.entries(result)) {
+      if (key !== "CLAUDE.md") {
+        expect(value).toBe("# Actual content");
+      }
+    }
   });
 });

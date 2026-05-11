@@ -8,25 +8,35 @@ export async function draft(state: PipelineState): Promise<string> {
     .map((p) => `## ${p.name} (${p.version})\n${p.llmsTxt}`)
     .join("\n\n");
 
+  const decisions = Object.entries(state.answers ?? {})
+    .map(([q, a]) => `- ${q}: ${a}`)
+    .join("\n");
+
+  const known = state.extracted?.present.map((p) => `- ${p}`).join("\n") ?? "";
+
   const { text } = await generateText({
     model: getModel(),
     maxOutputTokens: 4096,
     system: docsContext
-      ? `You have access to current documentation for the packages in this project:\n\n${docsContext}`
-      : undefined,
-    prompt: `Write a project spec (docs/spec.md) for this project.
+      ? `You are writing project specs for software projects. You have access to current documentation for the packages in this project:\n\n${docsContext}`
+      : "You are writing project specs for software projects.",
+    messages: [
+      {
+        role: "user",
+        content: `Write a project spec (docs/spec.md) for this project.
 
-Idea: ${state.idea}
+Project idea:
+${state.idea}
 
 What we know:
-${state.extracted?.present.map((p) => `- ${p}`).join("\n")}
+${known}
 
 Decisions made:
-${Object.entries(state.answers ?? {})
-  .map(([q, a]) => `- ${q}: ${a}`)
-  .join("\n")}
+${decisions}
 
 The spec should cover: problem statement, goals, non-goals, technical design, and acceptance criteria. Write it in markdown.`,
+      },
+    ],
   });
 
   return text;

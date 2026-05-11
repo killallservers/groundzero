@@ -1,49 +1,105 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { resolve } from "./resolve.ts";
 
 const originalFetch = globalThis.fetch;
 
+function makeFetchMock(
+  responses: Record<string, string | null> = {},
+  npmDefault = "1.0.0",
+) {
+  return async (url: string | URL | Request) => {
+    const urlStr = url.toString();
+    // npm registry calls
+    if (urlStr.includes("registry.npmjs.org")) {
+      return new Response(JSON.stringify({ version: npmDefault }), {
+        status: 200,
+      });
+    }
+    // llms.txt calls — match by hostname keyword
+    for (const [key, body] of Object.entries(responses)) {
+      if (urlStr.includes(key)) {
+        return body !== null
+          ? new Response(body, { status: 200 })
+          : new Response(null, { status: 404 });
+      }
+    }
+    return new Response(null, { status: 404 });
+  };
+}
+
 describe("resolve", () => {
   beforeEach(() => {
-    globalThis.fetch = mock(async (url: string | URL | Request) => {
-      const urlStr = url.toString();
-      if (urlStr.includes("hono.dev"))
-        return new Response("hono docs", { status: 200 });
-      if (urlStr.includes("bun.sh"))
-        return new Response("bun docs", { status: 200 });
-      if (urlStr.includes("drizzle"))
-        return new Response("drizzle docs", { status: 200 });
-      if (urlStr.includes("better-auth"))
-        return new Response("better-auth docs", { status: 200 });
-      return new Response(null, { status: 404 });
-    });
+    globalThis.fetch = makeFetchMock({
+      "hono.dev": "hono docs",
+      "bun.sh": "bun docs",
+      drizzle: "drizzle docs",
+      "better-auth": "better-auth docs",
+      "react.dev": "react docs",
+    }) as unknown as typeof fetch;
   });
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
   });
 
-  test("returns packages with llmsTxt for all known hosts", async () => {
+  test("always resolves bun, hono, drizzle regardless of answers", async () => {
     const result = await resolve({});
-    expect(result.packages).toHaveLength(4);
-    expect(result.packages.every((p) => p.llmsTxt !== undefined)).toBe(true);
+    const names = result.packages.map((p) => p.name);
+    expect(names).toContain("bun");
+    expect(names).toContain("hono");
+    expect(names).toContain("drizzle");
   });
 
-  test("filters out packages where fetch returns non-ok status", async () => {
-    globalThis.fetch = mock(async (url: string | URL | Request) => {
-      if (url.toString().includes("hono.dev"))
-        return new Response("hono docs", { status: 200 });
-      return new Response(null, { status: 404 });
-    });
+  test("infers additional packages from answers text", async () => {
+    const result = await resolve({ "Which frontend?": "react" });
+    const names = result.packages.map((p) => p.name);
+    expect(names).toContain("react");
+  });
+
+  test("fetches real npm version for each package", async () => {
     const result = await resolve({});
-    expect(result.packages).toHaveLength(1);
-    expect(result.packages[0]!.name).toBe("hono");
+    for (const pkg of result.packages) {
+      expect(pkg.version).toBe("1.0.0");
+    }
+  });
+
+  test("falls back to 'latest' when npm registry is unavailable", async () => {
+    const base = makeFetchMock(
+      {
+        "hono.dev": "hono docs",
+        "bun.sh": "bun docs",
+        drizzle: "drizzle docs",
+      },
+      undefined,
+    );
+    globalThis.fetch = (async (url: string | URL | Request) => {
+      if (url.toString().includes("registry.npmjs.org"))
+        throw new Error("offline");
+      return base(url);
+    }) as unknown as typeof fetch;
+    const result = await resolve({});
+    for (const pkg of result.packages) {
+      expect(pkg.version).toBe("latest");
+    }
+  });
+
+  test("filters out packages where llmsTxt fetch fails", async () => {
+    globalThis.fetch = makeFetchMock({
+      "hono.dev": "hono docs",
+      "bun.sh": null,
+      drizzle: null,
+    }) as unknown as typeof fetch;
+    const result = await resolve({});
+    const names = result.packages.map((p) => p.name);
+    expect(names).toContain("hono");
+    expect(names).not.toContain("bun");
+    expect(names).not.toContain("drizzle");
   });
 
   test("handles network errors gracefully — returns empty packages", async () => {
-    globalThis.fetch = mock(async () => {
+    globalThis.fetch = (async () => {
       throw new Error("network error");
-    });
+    }) as unknown as typeof fetch;
     const result = await resolve({});
     expect(result.packages).toHaveLength(0);
   });
@@ -55,11 +111,5 @@ describe("resolve", () => {
       expect(typeof pkg.version).toBe("string");
       expect(typeof pkg.llmsTxt).toBe("string");
     }
-  });
-
-  test("answers param is accepted but does not filter packages (always resolves all known)", async () => {
-    const withAnswers = await resolve({ "Which framework?": "hono" });
-    const withoutAnswers = await resolve({});
-    expect(withAnswers.packages).toHaveLength(withoutAnswers.packages.length);
   });
 });

@@ -78,6 +78,8 @@ packages/
 - Schema changes: `cd packages/core && bun run db:push` (runs `drizzle-kit generate` + bun-native migrate)
 - kebab-case filenames; PascalCase types and React components
 - React hooks: always `useCallback` for stable function references passed into `useEffect` deps
+- **No deprecated APIs** — check TypeScript diagnostics; find the current replacement before using any `@deprecated` symbol
+- **LLM calls** — use `generateText` + Zod `.parse()` (not `generateObject` — deprecated in AI SDK v6); always system/user split; always strip fences and validate with Zod
 
 ---
 
@@ -97,10 +99,10 @@ packages/
 - **Run:** `bun run test` at root — executes `bun test packages/mcp && bun test packages/core && bun test packages/api` (each as a separate process)
 - **Isolation:** Each package runs in its own `bun test` invocation. Bun 1.3+ shares the module cache within a single invocation, so `mock.module()` in one file bleeds into others if they run together. Separate processes eliminate this.
 - **Mock pattern:** Always call `mock.module("module-path", factory)` _before_ `await import("./module.ts")`. Static imports resolve before the module body runs; dynamic import is required for modules that use mocked dependencies.
-- **Integration tests** (`sessions.test.ts`): Use `new Database(":memory:")` with `sqlite.exec(CREATE TABLE ...)` matching the migration SQL exactly (backtick-quoted column names). Inject via `mock.module("@groundzero/core/db", () => ({ db: testDb }))`.
-- **E2E tests** (`e2e.test.ts`): Start a real `Bun.serve` in `beforeAll`, stop in `afterAll`. Consume SSE streams with `await res.text()` before reading DB state.
+- **Integration tests** (`sessions.test.ts`): Use `new Database(":memory:")` with `sqlite.run(CREATE TABLE ...)` matching the migration SQL exactly (backtick-quoted column names). Inject via `mock.module("@groundzero/core/db", () => ({ db: testDb }))`.
+- **E2E tests** (`e2e.test.ts`): Start a real `Bun.serve` in `beforeAll`, stop in `afterAll`. Mock `"./middleware/session"` to inject a test user. Consume SSE streams with `await res.text()` before reading DB state.
 - **Gotcha — `toHaveProperty` with file paths:** Bun's matcher interprets `.` as a nested-path separator. Use `Object.keys(obj).toContain("docs/llm.md")` instead of `expect(obj).toHaveProperty("docs/llm.md")`.
-- **Coverage:** 93 tests across 11 files — mcp (21), core (45), api (27).
+- **Coverage:** 97 tests across 11 files — mcp (21), core (49), api (27).
 
 ---
 

@@ -25,6 +25,13 @@ Hard constraints for this codebase. Must be respected unconditionally.
 - Do not use `process.env` — use `Bun.env`
 - Do not write package versions in `package.json` by hand — `bun add <pkg>@latest` on the CLI
 - Do not commit secrets, tokens, or credentials of any kind
+- Do not use deprecated APIs — check TypeScript diagnostics; find the current replacement before using any function marked `@deprecated`
+
+### LLM / AI SDK
+- Do not use `generateObject` — it is deprecated in AI SDK v6; use `generateText` + Zod `.parse()` for structured outputs
+- Do not embed user content in `prompt` or `system` strings — always use `system` for instructions and `messages: [{ role: "user", content: userInput }]` to prevent prompt injection
+- Always strip markdown fences from LLM text output before parsing: `text.match(/\`\`\`(?:\w+)?\s*([\s\S]*?)\`\`\`/)`
+- Always validate LLM JSON output with Zod — never use bare `JSON.parse()` on LLM responses
 
 ### Templates
 - Do not embed specific package versions in templates — resolution happens live at generation time

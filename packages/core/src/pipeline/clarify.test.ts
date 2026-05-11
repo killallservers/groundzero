@@ -22,18 +22,22 @@ describe("clarify", () => {
     ]);
   });
 
-  test("includes idea in the prompt", async () => {
+  test("includes idea in the user message content", async () => {
     await clarify("a blog platform", ["database"]);
-    const opts = mockGenerateText.mock.calls[0]?.[0] as { prompt: string };
-    expect(opts.prompt).toContain("a blog platform");
+    const opts = mockGenerateText.mock.calls[0]?.[0] as {
+      messages?: Array<{ role: string; content: string }>;
+    };
+    expect(opts.messages?.[0]?.content).toContain("a blog platform");
   });
 
-  test("includes all gaps in the prompt", async () => {
+  test("includes all gaps in the user message content", async () => {
     await clarify("app", ["auth strategy", "hosting target", "payment system"]);
-    const opts = mockGenerateText.mock.calls[0]?.[0] as { prompt: string };
-    expect(opts.prompt).toContain("auth strategy");
-    expect(opts.prompt).toContain("hosting target");
-    expect(opts.prompt).toContain("payment system");
+    const opts = mockGenerateText.mock.calls[0]?.[0] as {
+      messages?: Array<{ role: string; content: string }>;
+    };
+    expect(opts.messages?.[0]?.content).toContain("auth strategy");
+    expect(opts.messages?.[0]?.content).toContain("hosting target");
+    expect(opts.messages?.[0]?.content).toContain("payment system");
   });
 
   test("returns empty array when LLM returns []", async () => {

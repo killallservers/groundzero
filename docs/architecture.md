@@ -175,6 +175,14 @@ Full decision records: `docs/decisions.md`
 
 ---
 
+## Known Limitations
+
+**CLI bypasses the API.** `packages/cli/src/index.tsx` imports directly from `@groundzero/core/pipeline/*` and runs pipeline functions in-process. CLI sessions are not persisted to the DB and are not tied to a user account. This is intentional — the CLI is a local dev convenience, not a production path.
+
+**Organization plugin is wired but not enforced.** Better Auth's org plugin is installed, the schema has `organization`, `member`, and `invitation` tables, and `session.activeOrganizationId` is populated. No route currently enforces org-scoped session access. The infrastructure is ready when multi-tenancy becomes a requirement.
+
+---
+
 ## Security Considerations
 
 - Auth at middleware boundary — `sessionMiddleware` sets context; route handlers never touch auth

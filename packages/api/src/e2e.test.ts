@@ -5,9 +5,10 @@ import { drizzle } from "drizzle-orm/bun-sqlite";
 
 // Shared in-memory DB for e2e tests
 const sqlite = new Database(":memory:");
-sqlite.exec(`
+sqlite.run(`
   CREATE TABLE IF NOT EXISTS \`sessions\` (
     \`id\` text PRIMARY KEY NOT NULL,
+    \`user_id\` text,
     \`stage\` text DEFAULT 'extract' NOT NULL,
     \`idea\` text NOT NULL,
     \`state\` text NOT NULL,
@@ -54,6 +55,26 @@ mock.module("@groundzero/core/pipeline/zip", () => ({
     const count = Object.keys(files).length;
     return new Uint8Array([0x50, 0x4b, 0x05, 0x06, count]);
   }),
+}));
+
+// Provide a test user so auth guards pass without a real auth DB
+const e2eUser = {
+  id: "e2e-user-id",
+  name: "E2E User",
+  email: "e2e@example.com",
+  emailVerified: false,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+mock.module("./middleware/session", () => ({
+  sessionMiddleware: async (
+    c: { set: (k: string, v: unknown) => void },
+    next: () => Promise<void>,
+  ) => {
+    c.set("user", e2eUser);
+    c.set("session", { id: "e2e-session", userId: e2eUser.id });
+    await next();
+  },
 }));
 
 const { default: serverConfig } = await import("./index.ts");

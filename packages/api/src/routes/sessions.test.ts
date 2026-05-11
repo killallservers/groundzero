@@ -5,9 +5,10 @@ import { drizzle } from "drizzle-orm/bun-sqlite";
 
 // In-memory DB with sessions table matching the migration SQL exactly
 const sqlite = new Database(":memory:");
-sqlite.exec(`
+sqlite.run(`
   CREATE TABLE IF NOT EXISTS \`sessions\` (
     \`id\` text PRIMARY KEY NOT NULL,
+    \`user_id\` text,
     \`stage\` text DEFAULT 'extract' NOT NULL,
     \`idea\` text NOT NULL,
     \`state\` text NOT NULL,
@@ -56,7 +57,30 @@ mock.module("@groundzero/core/pipeline/zip", () => ({
 const { sessionsRouter } = await import("./sessions.ts");
 const { Hono } = await import("hono");
 
-const app = new Hono().route("/", sessionsRouter);
+// Inject a test user so auth guards in route handlers pass
+type TestUser = {
+  id: string;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+const testUser: TestUser = {
+  id: "test-user-id",
+  name: "Test User",
+  email: "test@example.com",
+  emailVerified: false,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+const app = new Hono<{ Variables: { user: TestUser | null; session: null } }>()
+  .use("*", (c, next) => {
+    c.set("user", testUser);
+    c.set("session", null);
+    return next();
+  })
+  .route("/", sessionsRouter);
 
 function parseSSE(text: string): unknown[] {
   return text
@@ -81,7 +105,7 @@ async function json<T>(res: Response): Promise<T> {
 }
 
 // Clean sessions table between tests
-beforeEach(() => sqlite.exec("DELETE FROM sessions"));
+beforeEach(() => sqlite.run("DELETE FROM sessions"));
 
 // ─── POST / ───────────────────────────────────────────────────────────────────
 
