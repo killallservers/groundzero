@@ -43,11 +43,11 @@ describe("generate", () => {
     expect(allContent).toContain("# My Spec");
   });
 
-  test("limits output to 8192 tokens per file", async () => {
+  test("limits output to 16384 tokens per file", async () => {
     await generate({ idea: "app", spec: "# Spec" });
     for (const call of mockGenerateText.mock.calls) {
       const opts = call[0] as { maxOutputTokens: number };
-      expect(opts.maxOutputTokens).toBe(8192);
+      expect(opts.maxOutputTokens).toBe(16384);
     }
   });
 
