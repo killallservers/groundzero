@@ -1,10 +1,7 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 
 const mockGenerateText = mock(async (_opts: unknown) => ({
-  text: JSON.stringify([
-    "Which auth provider?",
-    "What is the deployment target?",
-  ]),
+	text: "Which auth provider do you plan to use?",
 }));
 
 mock.module("ai", () => ({ generateText: mockGenerateText }));
@@ -12,50 +9,69 @@ mock.module("ai", () => ({ generateText: mockGenerateText }));
 const { clarify } = await import("./clarify.ts");
 
 describe("clarify", () => {
-  beforeEach(() => mockGenerateText.mockClear());
+	beforeEach(() => mockGenerateText.mockClear());
 
-  test("returns parsed array of questions", async () => {
-    const result = await clarify("a todo app", ["auth", "deployment"]);
-    expect(result).toEqual([
-      "Which auth provider?",
-      "What is the deployment target?",
-    ]);
-  });
+	test("returns a question string when LLM asks a question", async () => {
+		const result = await clarify("a todo app", ["auth", "deployment"]);
+		expect(result).toBe("Which auth provider do you plan to use?");
+	});
 
-  test("includes idea in the user message content", async () => {
-    await clarify("a blog platform", ["database"]);
-    const opts = mockGenerateText.mock.calls[0]?.[0] as {
-      messages?: Array<{ role: string; content: string }>;
-    };
-    expect(opts.messages?.[0]?.content).toContain("a blog platform");
-  });
+	test("returns null when LLM returns DONE", async () => {
+		mockGenerateText.mockImplementationOnce(async () => ({ text: "DONE" }));
+		const result = await clarify("a todo app", []);
+		expect(result).toBeNull();
+	});
 
-  test("includes all gaps in the user message content", async () => {
-    await clarify("app", ["auth strategy", "hosting target", "payment system"]);
-    const opts = mockGenerateText.mock.calls[0]?.[0] as {
-      messages?: Array<{ role: string; content: string }>;
-    };
-    expect(opts.messages?.[0]?.content).toContain("auth strategy");
-    expect(opts.messages?.[0]?.content).toContain("hosting target");
-    expect(opts.messages?.[0]?.content).toContain("payment system");
-  });
+	test("trims whitespace before checking DONE", async () => {
+		mockGenerateText.mockImplementationOnce(async () => ({
+			text: "  DONE  ",
+		}));
+		const result = await clarify("a todo app", []);
+		expect(result).toBeNull();
+	});
 
-  test("returns empty array when LLM returns []", async () => {
-    mockGenerateText.mockImplementationOnce(async () => ({ text: "[]" }));
-    const result = await clarify("simple script", []);
-    expect(result).toEqual([]);
-  });
+	test("includes idea in the user message", async () => {
+		await clarify("a blog platform", ["database"]);
+		const opts = mockGenerateText.mock.calls[0]?.[0] as {
+			messages?: Array<{ role: string; content: string }>;
+		};
+		expect(opts.messages?.[0]?.content).toContain("a blog platform");
+	});
 
-  test("throws when LLM returns invalid JSON", async () => {
-    mockGenerateText.mockImplementationOnce(async () => ({ text: "oops" }));
-    expect(clarify("app", ["gap"])).rejects.toThrow();
-  });
+	test("includes gaps in the user message", async () => {
+		await clarify("app", ["auth strategy", "hosting target"]);
+		const opts = mockGenerateText.mock.calls[0]?.[0] as {
+			messages?: Array<{ role: string; content: string }>;
+		};
+		const content = opts.messages?.[0]?.content ?? "";
+		expect(content).toContain("auth strategy");
+		expect(content).toContain("hosting target");
+	});
 
-  test("limits output tokens to 1024", async () => {
-    await clarify("app", ["gap"]);
-    const opts = mockGenerateText.mock.calls[0]?.[0] as {
-      maxOutputTokens: number;
-    };
-    expect(opts.maxOutputTokens).toBe(1024);
-  });
+	test("includes previous Q&A history in the user message", async () => {
+		await clarify("app", ["auth"], { "Which auth?": "OAuth via GitHub" });
+		const opts = mockGenerateText.mock.calls[0]?.[0] as {
+			messages?: Array<{ role: string; content: string }>;
+		};
+		const content = opts.messages?.[0]?.content ?? "";
+		expect(content).toContain("Which auth?");
+		expect(content).toContain("OAuth via GitHub");
+	});
+
+	test("omits history section when history is empty", async () => {
+		await clarify("app", ["auth"], {});
+		const opts = mockGenerateText.mock.calls[0]?.[0] as {
+			messages?: Array<{ role: string; content: string }>;
+		};
+		const content = opts.messages?.[0]?.content ?? "";
+		expect(content).not.toContain("Previous Q&A");
+	});
+
+	test("limits output tokens to 256", async () => {
+		await clarify("app", ["gap"]);
+		const opts = mockGenerateText.mock.calls[0]?.[0] as {
+			maxOutputTokens: number;
+		};
+		expect(opts.maxOutputTokens).toBe(256);
+	});
 });

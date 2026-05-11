@@ -101,8 +101,13 @@ type Stage =
 			name: "clarifying";
 			idea: string;
 			extracted: NonNullable<PipelineState["extracted"]>;
-			questions: string[];
-			current: number;
+			question: string;
+			answers: Record<string, string>;
+	  }
+	| {
+			name: "clarifying-next";
+			idea: string;
+			extracted: NonNullable<PipelineState["extracted"]>;
 			answers: Record<string, string>;
 	  }
 	| { name: "links"; state: PipelineState; urls: string[] }
@@ -137,7 +142,7 @@ function App() {
 		[],
 	);
 
-	// Extract + clarify
+	// Extract + first clarify question
 	useEffect(() => {
 		if (stage.name !== "extracting") return;
 		const { idea } = stage;
@@ -145,22 +150,42 @@ function App() {
 			try {
 				const extracted = await extract(idea);
 				done("Idea analysed");
-				const questions = await clarify(idea, extracted.gaps);
-				if (questions.length === 0) {
+				const question = await clarify(idea, extracted.gaps);
+				if (!question) {
 					setStage({
 						name: "links",
 						state: { idea, extracted, questions: [], answers: {} },
 						urls: [],
 					});
 				} else {
+					setStage({ name: "clarifying", idea, extracted, question, answers: {} });
+				}
+			} catch (err) {
+				fail(err);
+			}
+		})();
+	}, [stage, done, fail]);
+
+	// Adaptive clarify — fetch next question after each answer
+	useEffect(() => {
+		if (stage.name !== "clarifying-next") return;
+		const { idea, extracted, answers } = stage;
+		(async () => {
+			try {
+				const question = await clarify(idea, extracted.gaps, answers);
+				if (!question) {
 					setStage({
-						name: "clarifying",
-						idea,
-						extracted,
-						questions,
-						current: 0,
-						answers: {},
+						name: "links",
+						state: {
+							idea,
+							extracted,
+							questions: Object.keys(answers),
+							answers,
+						},
+						urls: [],
 					});
+				} else {
+					setStage({ name: "clarifying", idea, extracted, question, answers });
 				}
 			} catch (err) {
 				fail(err);
@@ -280,39 +305,25 @@ function App() {
 
 			{stage.name === "clarifying" && (
 				<Prompt
-					label={stage.questions[stage.current]!}
-					hint={`(${stage.current + 1} / ${stage.questions.length})`}
+					label={stage.question}
 					value={input}
 					onChange={setInput}
 					onSubmit={(value) => {
 						if (!value.trim()) return;
-						const { idea, extracted, questions, current, answers } = stage;
-						const question = questions[current]!;
-						const updated = { ...answers, [question]: value };
+						const { idea, extracted, question, answers } = stage;
 						setInput("");
-						if (current + 1 < questions.length) {
-							setStage({
-								name: "clarifying",
-								idea,
-								extracted,
-								questions,
-								current: current + 1,
-								answers: updated,
-							});
-						} else {
-							setStage({
-								name: "links",
-								state: {
-									idea,
-									extracted,
-									questions: Object.keys(updated),
-									answers: updated,
-								},
-								urls: [],
-							});
-						}
+						setStage({
+							name: "clarifying-next",
+							idea,
+							extracted,
+							answers: { ...answers, [question]: value },
+						});
 					}}
 				/>
+			)}
+
+			{stage.name === "clarifying-next" && (
+				<Busy label="Thinking of the next question…" />
 			)}
 
 			{stage.name === "links" && (

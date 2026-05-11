@@ -5,7 +5,8 @@ export type { PipelineStage, PipelineState };
 export type PipelineEvent =
   | { type: "stage"; stage: PipelineStage }
   | { type: "extract:done"; present: string[]; gaps: string[] }
-  | { type: "clarify:questions"; questions: string[] }
+  | { type: "clarify:question"; question: string }
+  | { type: "clarify:done" }
   | { type: "resolve:done"; packages: PipelineState["resolved"] }
   | { type: "draft:done"; spec: string }
   | { type: "review:ready" }

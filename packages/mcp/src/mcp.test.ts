@@ -37,9 +37,10 @@ const mockExtract = mock(async (_idea: string) => ({
   present: ["React"],
   gaps: ["auth"],
 }));
-const mockClarify = mock(async (_idea: string, _gaps: string[]) => [
-  "Which auth?",
-]);
+const mockClarify = mock(
+  async (_idea: string, _gaps: string[], _history?: Record<string, string>) =>
+    "Which auth provider do you plan to use?" as string | null,
+);
 const mockResolve = mock(async () => ({
   packages: [{ name: "hono", version: "latest" }],
 }));
@@ -133,12 +134,21 @@ describe("gz_extract tool handler", () => {
 // ─── Tool: gz_clarify ─────────────────────────────────────────────────────────
 
 describe("gz_clarify tool handler", () => {
-  test("returns array of questions", async () => {
+  test("returns the next question", async () => {
     const handler = registeredTools.get("gz_clarify")!.handler;
     const result = await handler({ idea: "app", gaps: ["auth"] });
     expect(result.isError).toBeUndefined();
     const parsed = JSON.parse(result.content[0]!.text);
-    expect(parsed).toEqual(["Which auth?"]);
+    expect(parsed.question).toBe("Which auth provider do you plan to use?");
+  });
+
+  test("returns null question when done", async () => {
+    mockClarify.mockImplementationOnce(async () => null);
+    const handler = registeredTools.get("gz_clarify")!.handler;
+    const result = await handler({ idea: "app", gaps: [] });
+    expect(result.isError).toBeUndefined();
+    const parsed = JSON.parse(result.content[0]!.text);
+    expect(parsed.question).toBeNull();
   });
 
   test("returns isError on failure", async () => {

@@ -61,17 +61,23 @@ server.registerTool(
   "gz_clarify",
   {
     description:
-      "Generate the minimum clarifying questions needed to fill information gaps. Returns an empty array if gaps are zero — you can skip straight to gz_resolve.",
+      "Ask the next clarifying question needed to fill information gaps. Call repeatedly after each user answer until question is null (done). Pass the accumulated Q&A history so each question builds on previous answers.",
     inputSchema: {
       idea: z.string().describe("The raw project idea text"),
       gaps: z.array(z.string()).describe("Gaps array from gz_extract"),
+      history: z
+        .record(z.string(), z.string())
+        .optional()
+        .describe("Q&A history from previous calls (question → answer map)"),
     },
   },
-  async ({ idea, gaps }) => {
+  async ({ idea, gaps, history = {} }) => {
     try {
-      const questions = await clarify(idea, gaps);
+      const question = await clarify(idea, gaps, history);
       return {
-        content: [{ type: "text", text: JSON.stringify(questions, null, 2) }],
+        content: [
+          { type: "text", text: JSON.stringify({ question }, null, 2) },
+        ],
       };
     } catch (err) {
       return { content: [{ type: "text", text: String(err) }], isError: true };
