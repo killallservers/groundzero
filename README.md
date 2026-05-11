@@ -35,7 +35,7 @@ my-project/
 ├── CLAUDE.md → docs/llm.md      # Claude Code
 ├── AGENTS.md → docs/llm.md      # OpenCode, others
 ├── .cursorrules → docs/llm.md   # Cursor
-├── .mcp.json                    # MCP servers (GitHub, Plane, Ground Zero)
+├── .mcp.json                    # MCP servers (GitHub, filesystem, Ground Zero)
 │
 ├── docs/
 │   ├── llm.md                   # Stack, conventions, constraints

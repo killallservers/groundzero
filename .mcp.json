@@ -8,10 +8,6 @@
         "LLM_API_KEY": "YOUR_API_KEY"
       }
     },
-    "plane": {
-      "command": "npx",
-      "args": ["mcp-remote@latest", "https://mcp.plane.so/http/mcp"]
-    },
     "github": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-github"],
