@@ -18,7 +18,7 @@ Three layers, all using Bun's built-in test runner:
 
 ```sh
 # all tests (from root) — runs each package in a separate process
-bun test
+bun run test
 
 # single package
 bun test packages/core
@@ -29,7 +29,7 @@ bun test packages/mcp
 bun test packages/core/src/pipeline/extract.test.ts
 ```
 
-> **Why separate processes?** Bun 1.3+ shares the module cache within a single `bun test` invocation. `mock.module()` in one file bleeds into others. Running each package as a separate `bun test` call gives process-level isolation.
+> **Why `bun run test` not `bun test` at root?** `bun test` without a path discovers every `.test.ts` file in the repo and runs them in a single process. Bun 1.3+ shares the module cache within a single invocation, so `mock.module()` in one file bleeds into others. The `bun run test` script (`bun test packages/mcp && bun test packages/core && bun test packages/api`) runs each package in a separate process for true isolation.
 
 ---
 
@@ -82,12 +82,12 @@ const row = await db.query.sessions.findFirst(...); // now DB is updated
 
 ## Coverage
 
-93 tests across 11 files:
+97 tests across 11 files:
 
 | Package | Tests | Files |
 |---------|-------|-------|
 | `packages/mcp` | 21 | 1 (mcp.test.ts) |
-| `packages/core` | 49 | 8 (llm, extract, clarify, resolve, draft, generate, zip, schema) |
+| `packages/core` | 49 | 8 (schema, llm, extract, clarify, resolve, draft, generate, zip) |
 | `packages/api` | 27 | 2 (sessions.test.ts, e2e.test.ts) |
 
 ---
@@ -100,4 +100,4 @@ const row = await db.query.sessions.findFirst(...); // now DB is updated
 
 ---
 
-*Last updated: 2026-05-10*
+*Last updated: 2026-05-11*

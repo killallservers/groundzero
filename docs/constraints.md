@@ -54,7 +54,7 @@ Hard constraints for this codebase. Must be respected unconditionally.
 ## Testing
 
 ### Test Isolation
-- Run each package as a separate `bun test` invocation — never combine into one. Bun shares the module cache within a single invocation; `mock.module()` in one file bleeds into others.
+- Always run tests with `bun run test` (not `bun test` at root) — the root script runs each package as a separate `bun test` invocation. Bun shares the module cache within a single invocation; `mock.module()` in one file bleeds into others.
 - Root test script: `bun test packages/mcp && bun test packages/core && bun test packages/api`
 
 ### Mock Patterns
@@ -84,4 +84,4 @@ Hard constraints for this codebase. Must be respected unconditionally.
 
 ---
 
-*Last updated: 2026-05-10*
+*Last updated: 2026-05-11*

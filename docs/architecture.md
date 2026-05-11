@@ -80,6 +80,7 @@ Phase 2 — CLI (complete)
     packages/cli/src/index.tsx
         — Ink (React for CLIs) state machine
         — Stages: idea → extracting → clarifying → resolving → reviewing → generating → done
+        — On completion writes all generated files (docs/, CLAUDE.md) to process.cwd()
         — Compiles to standalone binary: bun build --compile --bytecode
 
 Phase 3 — Web UI (complete)
@@ -192,4 +193,4 @@ Full decision records: `docs/decisions.md`
 
 ---
 
-*Last updated: 2026-05-10*
+*Last updated: 2026-05-11*

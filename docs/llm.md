@@ -9,7 +9,7 @@
 
 **What:** AI workspace generator — paste a project idea, receive a fully specced Claude Code workspace ZIP, ready to build.
 **Why:** Eliminates the hours of setup (versions, conventions, docs, AI context) between having an idea and being able to code.
-**Status:** Phase 1 complete (`install.sh` + templates). Phase 2 pipeline built (extract → clarify → resolve → draft → generate → zip). Phase 3 web UI built (idea → clarify → review → generate → download ZIP). Auth complete: schema, Better Auth instance, session middleware, and `/auth/**` routes all wired.
+**Status:** Phase 1 complete (`install.sh` + templates). Phase 2 pipeline built (extract → clarify → resolve → draft → generate → zip). Phase 3 web UI built (idea → clarify → review → generate → download ZIP). Auth complete: schema, Better Auth instance, session middleware, `/auth/**` routes wired, and all session routes userId-scoped. CLI writes generated files directly to `process.cwd()`.
 **Repo:** github.com/killallservers/groundzero
 
 ---
@@ -157,4 +157,4 @@ packages/
 
 ---
 
-*Last updated: 2026-05-10*
+*Last updated: 2026-05-11*
