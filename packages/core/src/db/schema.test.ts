@@ -1,10 +1,11 @@
 import { describe, expect, test } from "bun:test";
+import { getTableName } from "drizzle-orm";
 import type { PipelineStage, PipelineState } from "./schema";
 import { sessions } from "./schema";
 
 describe("sessions schema", () => {
   test("table name is sessions", () => {
-    expect(sessions[Symbol.for("drizzle:Name")]).toBe("sessions");
+    expect(getTableName(sessions)).toBe("sessions");
   });
 
   test("has all expected columns", () => {

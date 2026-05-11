@@ -87,8 +87,13 @@ if [ -n "$PROJECT_REPO" ]; then
 fi
 
 printf "\nDone.\n\n"
-printf "Next steps:\n"
-printf "  1. Open .mcp.json and set LLM_API_KEY\n"
-printf "  2. Open this project in Claude Code\n"
-printf "  3. Ask Claude: \"use ground zero to generate a workspace for this project\"\n\n"
-printf "Or fill in docs/ manually and run /init in Claude Code.\n\n"
+printf "Next steps — generate your workspace:\n\n"
+printf "  Option A (CLI, quickest):\n"
+printf "    LLM_API_KEY=sk-ant-... bun /path/to/groundzero/packages/cli/src/index.tsx\n"
+printf "    or: LLM_API_KEY=sk-ant-... gz   (if you built the binary)\n\n"
+printf "  Option B (MCP, from Claude Code):\n"
+printf "    1. Open .mcp.json and set LLM_API_KEY\n"
+printf "    2. Open this project in Claude Code\n"
+printf "    3. Ask: \"use ground zero to generate a workspace for this project\"\n\n"
+printf "  Option C (manual): fill in docs/ and run /init in Claude Code.\n\n"
+printf "See https://github.com/%s for full docs.\n\n" "$REPO"

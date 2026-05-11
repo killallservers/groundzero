@@ -24,7 +24,7 @@ type Stage =
   | { name: "resolving"; state: PipelineState }
   | { name: "reviewing"; state: PipelineState; spec: string }
   | { name: "generating"; state: PipelineState }
-  | { name: "done"; fileCount: number }
+  | { name: "done"; files: string[] }
   | { name: "error"; message: string };
 
 function Check({ label }: { label: string }) {
@@ -119,8 +119,17 @@ function App() {
     (async () => {
       try {
         const files = await generate(state);
+        const cwd = process.cwd();
+        await Promise.all(
+          Object.entries(files).map(async ([rel, content]) => {
+            const abs = `${cwd}/${rel}`;
+            const dir = abs.substring(0, abs.lastIndexOf("/"));
+            await Bun.spawn(["mkdir", "-p", dir]).exited;
+            await Bun.write(abs, content);
+          }),
+        );
         done(`Generated ${Object.keys(files).length} files`);
-        setStage({ name: "done", fileCount: Object.keys(files).length });
+        setStage({ name: "done", files: Object.keys(files) });
       } catch (err) {
         fail(err);
       }
@@ -246,9 +255,19 @@ function App() {
       )}
 
       {stage.name === "done" && (
-        <Box gap={1}>
-          <Text color="green">✓</Text>
-          <Text>Done! {stage.fileCount} files generated.</Text>
+        <Box flexDirection="column" gap={1}>
+          <Box gap={1}>
+            <Text color="green">✓</Text>
+            <Text bold>
+              Done! {stage.files.length} files written to {process.cwd()}
+            </Text>
+          </Box>
+          {stage.files.map((f) => (
+            <Box key={f} gap={1} paddingLeft={2}>
+              <Text dimColor>·</Text>
+              <Text dimColor>{f}</Text>
+            </Box>
+          ))}
         </Box>
       )}
 

@@ -14,14 +14,15 @@ Two things:
 
 **A `curl | sh` installer** that drops AI context docs, Claude Code skills, and MCP config into any project in thirty seconds.
 
-**A workspace generator** — paste a project idea, answer a few questions, get a ready-to-build Claude Code workspace ZIP with every doc your AI needs, wired up and accurate.
+**A workspace generator** — paste a project idea, answer a few questions, get a ready-to-build Claude Code workspace with every doc your AI needs, wired up and accurate.
 
 ## Quick start
 
 ### Step 1 — Install into your project
 
 ```sh
-cd your-project
+mkdir my-project && cd my-project
+git init
 curl -fsSL https://raw.githubusercontent.com/killallservers/groundzero/main/install.sh | sh
 ```
 
@@ -30,14 +31,14 @@ You'll be asked for a project name and GitHub repo. Takes thirty seconds.
 **What you get:**
 
 ```
-your-project/
+my-project/
 ├── CLAUDE.md → docs/llm.md      # Claude Code
 ├── AGENTS.md → docs/llm.md      # OpenCode, others
 ├── .cursorrules → docs/llm.md   # Cursor
 ├── .mcp.json                    # MCP servers (GitHub, Plane, Ground Zero)
 │
 ├── docs/
-│   ├── llm.md                   # Stack, conventions, constraints (fill in)
+│   ├── llm.md                   # Stack, conventions, constraints
 │   ├── architecture.md          # How it's built and why
 │   ├── constraints.md           # Hard limits
 │   ├── decisions.md             # ADR log
@@ -50,11 +51,74 @@ your-project/
     └── skills/                  # Workflow guides (TDD, spec, ADR, diagnose…)
 ```
 
-Run `/init` in Claude Code to fill in your project details.
+The docs are stubs. Step 2 fills them in.
 
-### Step 2 — Set your API key
+### Step 2 — Generate your workspace
 
-Open `.mcp.json` and replace `YOUR_API_KEY` with your Anthropic (or other provider) key:
+Run the generator from inside your project. It asks for your idea, asks a few questions, then writes out all your docs filled in and accurate.
+
+**Option A — CLI (quickest, terminal only):**
+
+```sh
+cd my-project
+LLM_API_KEY=sk-ant-... bun /path/to/groundzero/packages/cli/src/index.tsx
+```
+
+Or if you built the binary:
+
+```sh
+LLM_API_KEY=sk-ant-... gz
+```
+
+The CLI runs interactively:
+
+```
+groundzero — AI workspace generator
+
+Project idea: a SaaS todo app with teams and Stripe billing
+
+  Analysing…
+
+Question 1 / 3: What database should we use?
+> SQLite via Drizzle
+
+Question 2 / 3: Does this need a mobile app?
+> No, web only
+
+Question 3 / 3: Should the API be public or internal only?
+> Internal only for now
+
+  Resolving packages and drafting spec…
+
+┌─────────────────────────────────┐
+│ Spec preview                    │
+│                                 │
+│ # SaaS Todo App                 │
+│                                 │
+│ ## Problem                      │
+│ …                               │
+└─────────────────────────────────┘
+
+Generate workspace? [y/n] y
+
+  Generating workspace files…
+
+✓ Done! 8 files written to /path/to/my-project
+  · docs/llm.md
+  · docs/architecture.md
+  · docs/constraints.md
+  · docs/decisions.md
+  · docs/context.md
+  · docs/testing.md
+  · docs/deployment.md
+  · CLAUDE.md
+```
+
+Your `docs/` directory is now filled in. Open the project in Claude Code and start building.
+
+**Option B — MCP (from inside Claude Code):**
+
+Open `.mcp.json` and replace `YOUR_API_KEY`:
 
 ```json
 "groundzero": {
@@ -67,17 +131,38 @@ Open `.mcp.json` and replace `YOUR_API_KEY` with your Anthropic (or other provid
 }
 ```
 
-### Step 3 — Generate your workspace
-
-Open the project in Claude Code. The `groundzero` MCP server starts automatically. Then ask Claude to run the pipeline:
+Open the project in Claude Code. The `groundzero` MCP server starts automatically. Ask Claude:
 
 > "Use ground zero to generate a workspace for this project"
 
-Claude will call `gz_extract` → `gz_clarify` → `gz_resolve` → `gz_draft` → `gz_generate` → `gz_zip`, asking you questions along the way. At the end you get a ZIP with fully filled-in docs ready to build from.
+Claude will call `gz_extract` → `gz_clarify` → `gz_resolve` → `gz_draft` → `gz_generate` → `gz_zip`, asking you questions along the way. At the end you get a ZIP with fully filled-in docs.
+
+**Option C — Web UI:**
+
+```sh
+# from the groundzero repo
+LLM_API_KEY=sk-ant-... bun dev   # API on :3000, web on :5173
+```
+
+Open `http://localhost:5173`.
 
 ## Workspace generator
 
-### MCP (recommended — works from inside Claude Code)
+### CLI
+
+```sh
+# run directly from the groundzero repo
+LLM_API_KEY=sk-ant-... bun /path/to/groundzero/packages/cli/src/index.tsx
+
+# or build a standalone binary
+bun run build:cli        # → dist/gz
+mv dist/gz /usr/local/bin/gz
+LLM_API_KEY=sk-ant-... gz
+```
+
+The CLI runs entirely locally — no server, no account. Run it from inside any project and it writes docs directly to your current directory.
+
+### MCP
 
 The installed `.mcp.json` wires up six tools. Claude orchestrates the flow:
 
@@ -89,37 +174,6 @@ The installed `.mcp.json` wires up six tools. Claude orchestrates the flow:
 | `gz_draft` | Write spec.md |
 | `gz_generate` | Generate workspace file tree |
 | `gz_zip` | Bundle to ZIP |
-
-### CLI (terminal, no browser)
-
-Build the binary from the groundzero repo, then run it from anywhere:
-
-```sh
-# from the groundzero repo
-bun run build:cli
-# → dist/gz
-
-# move to PATH
-mv dist/gz /usr/local/bin/gz
-
-# run from any project
-LLM_API_KEY=sk-ant-... gz
-```
-
-Or run directly without building:
-
-```sh
-LLM_API_KEY=sk-ant-... bun /path/to/groundzero/packages/cli/src/index.tsx
-```
-
-### Web UI (browser)
-
-```sh
-# from the groundzero repo
-LLM_API_KEY=sk-ant-... bun dev   # API on :3000, web on :5173
-```
-
-Open `http://localhost:5173`.
 
 ## LLM providers
 
