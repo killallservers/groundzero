@@ -77,6 +77,7 @@ const row = await db.query.sessions.findFirst(...); // now DB is updated
 
 - **`toHaveProperty` with file path keys**: Bun interprets `.` in the key as a nested-path separator. Use `Object.keys(obj).toContain("docs/llm.md")` instead.
 - **`Response.json()` generics**: `res.json()` doesn't accept a type parameter. Use a typed helper: `async function json<T>(res: Response): Promise<T> { return res.json() as Promise<T>; }`
+- **MCP `gz_zip` test writes to `/tmp`**: The test uses a mock that returns `new Uint8Array([0x50, 0x4b, 0x03, 0x04])` and writes it to `/tmp/gz-test-*.zip` and `/tmp/groundzero-*.zip`. These 4-byte files are test artifacts — not corrupt production archives. The real `buildZip` (tested in `zip.test.ts`) produces valid ZIP output.
 
 ---
 
@@ -100,4 +101,4 @@ const row = await db.query.sessions.findFirst(...); // now DB is updated
 
 ---
 
-*Last updated: 2026-05-11*
+*Last updated: 2026-05-12*

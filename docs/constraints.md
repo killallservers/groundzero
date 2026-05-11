@@ -30,6 +30,7 @@ Hard constraints for this codebase. Must be respected unconditionally.
 ### LLM / AI SDK
 - Do not use `generateObject` — it is deprecated in AI SDK v6; use `generateText` + Zod `.parse()` for structured outputs
 - Do not embed user content in `prompt` or `system` strings — always use `system` for instructions and `messages: [{ role: "user", content: userInput }]` to prevent prompt injection
+- Do not set `maxOutputTokens` below 8192 in `generate.ts` — lower values truncate generated workspace docs mid-word
 - Always strip markdown fences from LLM text output before parsing: `text.match(/\`\`\`(?:\w+)?\s*([\s\S]*?)\`\`\`/)`
 - Always validate LLM JSON output with Zod — never use bare `JSON.parse()` on LLM responses
 
@@ -84,4 +85,4 @@ Hard constraints for this codebase. Must be respected unconditionally.
 
 ---
 
-*Last updated: 2026-05-11*
+*Last updated: 2026-05-12*

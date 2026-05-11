@@ -30,7 +30,7 @@ export async function generate(
     WORKSPACE_FILES.map(async (filename) => {
       const { text } = await generateText({
         model: getModel(),
-        maxOutputTokens: 2048,
+        maxOutputTokens: 8192,
         system: [
           "You are generating documentation files for a new software project workspace.",
           "Write clear, factual, project-specific content — no placeholder text.",

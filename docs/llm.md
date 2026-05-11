@@ -79,7 +79,7 @@ packages/
 - kebab-case filenames; PascalCase types and React components
 - React hooks: always `useCallback` for stable function references passed into `useEffect` deps
 - **No deprecated APIs** — check TypeScript diagnostics; find the current replacement before using any `@deprecated` symbol
-- **LLM calls** — use `generateText` + Zod `.parse()` (not `generateObject` — deprecated in AI SDK v6); always system/user split; always strip fences and validate with Zod
+- **LLM calls** — use `generateText` + Zod `.parse()` (not `generateObject` — deprecated in AI SDK v6); always system/user split; always strip fences and validate with Zod; size `maxOutputTokens` for the expected output — `generate.ts` uses 8192 per doc file
 
 ---
 
@@ -157,4 +157,4 @@ packages/
 
 ---
 
-*Last updated: 2026-05-11*
+*Last updated: 2026-05-12*
