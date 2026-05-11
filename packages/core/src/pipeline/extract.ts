@@ -1,8 +1,6 @@
 import { generateText } from "ai";
 import { z } from "zod";
 import { getModel } from "../lib/llm";
-import type { PipelineState } from "./types";
-
 const ExtractSchema = z.object({
   present: z.array(z.string()),
   gaps: z.array(z.string()),
@@ -15,7 +13,7 @@ function stripFences(text: string): string {
 
 export async function extract(
   idea: string,
-): Promise<PipelineState["extracted"]> {
+): Promise<{ present: string[]; gaps: string[] }> {
   const { text } = await generateText({
     model: getModel(),
     maxOutputTokens: 1024,
