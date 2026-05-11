@@ -86,4 +86,9 @@ if [ -n "$PROJECT_REPO" ]; then
   sedi "s|\[github.com/org/repo\]|github.com/${PROJECT_REPO}|g" docs/llm.md 2>/dev/null || true
 fi
 
-printf "\nDone. Fill in the [TODO] sections in docs/ and start building.\n\n"
+printf "\nDone.\n\n"
+printf "Next steps:\n"
+printf "  1. Open .mcp.json and set LLM_API_KEY\n"
+printf "  2. Open this project in Claude Code\n"
+printf "  3. Ask Claude: \"use ground zero to generate a workspace for this project\"\n\n"
+printf "Or fill in docs/ manually and run /init in Claude Code.\n\n"

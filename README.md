@@ -16,15 +16,18 @@ Two things:
 
 **A workspace generator** — paste a project idea, answer a few questions, get a ready-to-build Claude Code workspace ZIP with every doc your AI needs, wired up and accurate.
 
-## Quick start (installer)
+## Quick start
+
+### Step 1 — Install into your project
 
 ```sh
+cd your-project
 curl -fsSL https://raw.githubusercontent.com/killallservers/groundzero/main/install.sh | sh
 ```
 
-Drops into any project directory. Takes thirty seconds. Then run `/init` in Claude Code to fill in your project details.
+You'll be asked for a project name and GitHub repo. Takes thirty seconds.
 
-## What you get
+**What you get:**
 
 ```
 your-project/
@@ -34,7 +37,7 @@ your-project/
 ├── .mcp.json                    # MCP servers (GitHub, Plane, Ground Zero)
 │
 ├── docs/
-│   ├── llm.md                   # Stack, conventions, constraints
+│   ├── llm.md                   # Stack, conventions, constraints (fill in)
 │   ├── architecture.md          # How it's built and why
 │   ├── constraints.md           # Hard limits
 │   ├── decisions.md             # ADR log
@@ -47,27 +50,36 @@ your-project/
     └── skills/                  # Workflow guides (TDD, spec, ADR, diagnose…)
 ```
 
+Run `/init` in Claude Code to fill in your project details.
+
+### Step 2 — Set your API key
+
+Open `.mcp.json` and replace `YOUR_API_KEY` with your Anthropic (or other provider) key:
+
+```json
+"groundzero": {
+  "command": "bunx",
+  "args": ["@groundzero/mcp"],
+  "env": {
+    "LLM_PROVIDER": "anthropic",
+    "LLM_API_KEY": "sk-ant-..."
+  }
+}
+```
+
+### Step 3 — Generate your workspace
+
+Open the project in Claude Code. The `groundzero` MCP server starts automatically. Then ask Claude to run the pipeline:
+
+> "Use ground zero to generate a workspace for this project"
+
+Claude will call `gz_extract` → `gz_clarify` → `gz_resolve` → `gz_draft` → `gz_generate` → `gz_zip`, asking you questions along the way. At the end you get a ZIP with fully filled-in docs ready to build from.
+
 ## Workspace generator
 
-### CLI
+### MCP (recommended — works from inside Claude Code)
 
-```sh
-gz
-```
-
-Runs the full pipeline interactively in the terminal: idea → clarification → spec review → ZIP.
-
-### Web UI
-
-```sh
-bun dev   # API on :3000, web on :5173
-```
-
-Open `http://localhost:5173` — same pipeline, browser UI.
-
-### MCP server
-
-Add `@groundzero/mcp` to your `.mcp.json` and call the pipeline tools directly from any Claude Code conversation:
+The installed `.mcp.json` wires up six tools. Claude orchestrates the flow:
 
 | Tool | Does |
 |------|------|
@@ -78,7 +90,36 @@ Add `@groundzero/mcp` to your `.mcp.json` and call the pipeline tools directly f
 | `gz_generate` | Generate workspace file tree |
 | `gz_zip` | Bundle to ZIP |
 
-The LLM orchestrates the flow — it decides when to skip, loop back, or ask the user for confirmation.
+### CLI (terminal, no browser)
+
+Build the binary from the groundzero repo, then run it from anywhere:
+
+```sh
+# from the groundzero repo
+bun run build:cli
+# → dist/gz
+
+# move to PATH
+mv dist/gz /usr/local/bin/gz
+
+# run from any project
+LLM_API_KEY=sk-ant-... gz
+```
+
+Or run directly without building:
+
+```sh
+LLM_API_KEY=sk-ant-... bun /path/to/groundzero/packages/cli/src/index.tsx
+```
+
+### Web UI (browser)
+
+```sh
+# from the groundzero repo
+LLM_API_KEY=sk-ant-... bun dev   # API on :3000, web on :5173
+```
+
+Open `http://localhost:5173`.
 
 ## LLM providers
 
@@ -94,13 +135,30 @@ Supported: `anthropic`, `openai`, `google`, `mistral`, `cohere`, `bedrock`, `azu
 ## Development
 
 ```sh
+git clone https://github.com/killallservers/groundzero
+cd groundzero
 bun install
 
 bun dev           # API server (port 3000)
 bun run check     # Biome lint + format check
 bun run typecheck # tsgo across all packages
-bun test          # Bun test runner
-bun db:push       # Generate + apply DB migrations
+bun test          # 97 tests across mcp, core, api
+bun db:push       # Generate + apply DB migrations (from packages/core)
+```
+
+### Local MCP dev
+
+To test the MCP server against a local groundzero checkout, update `.mcp.json` in your test project:
+
+```json
+"groundzero": {
+  "command": "bun",
+  "args": ["/path/to/groundzero/packages/mcp/src/index.ts"],
+  "env": {
+    "LLM_PROVIDER": "anthropic",
+    "LLM_API_KEY": "sk-ant-..."
+  }
+}
 ```
 
 ### Packages
