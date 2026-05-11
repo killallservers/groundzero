@@ -51,13 +51,13 @@ packages/
     drizzle.config.ts           — drizzle-kit config; schema array includes both schema files
     groundzero.db               — SQLite file (gitignored; default path via import.meta.url)
   api/                          — Hono HTTP server (@groundzero/api)
-    src/index.ts                — Bun.serve on port 3000
+    src/index.ts                — Bun.serve on port 5001
     src/lib/auth.ts             — Better Auth instance (drizzle adapter + organization plugin)
     src/routes/sessions.ts      — pipeline session CRUD + triggers
   cli/                          — Ink terminal UI (@groundzero/cli)
     src/index.tsx               — React state machine; compiles to standalone binary (gz)
   web/                          — Bun fullstack frontend (@groundzero/web)
-    src/index.ts                — Bun.serve on port 5173; proxies /api/* → api
+    src/index.ts                — Bun.serve on port 5000; proxies /api/* → api
     src/App.tsx                 — React + shadcn/ui; full pipeline UI (idea → ZIP download)
   mcp/                          — MCP server (@groundzero/mcp)
     src/index.ts                — 6 granular tools: gz_extract, gz_clarify, gz_resolve,
@@ -75,6 +75,7 @@ packages/
 - `Bun.env` instead of `process.env` — idiomatic Bun and shows intent clearly
 - `import.meta.url` for file-relative paths — from `src/db/` two `../` levels up reaches `packages/core/`; verify depth before writing
 - `bun add <pkg>@latest` on the CLI — never write versions in `package.json` by hand
+- **New frontend packages** — scaffold with `bun init --react=shadcn` (React + shadcn/ui + Tailwind) or `bun init --react=tailwind` (React + Tailwind only); this installs `tailwindcss`, `tw-animate-css`, and wires up the CSS imports automatically. See https://bun.com/docs/runtime/templating/init
 - Schema changes: `cd packages/core && bun run db:push` (runs `drizzle-kit generate` + bun-native migrate)
 - kebab-case filenames; PascalCase types and React components
 - React hooks: always `useCallback` for stable function references passed into `useEffect` deps
@@ -157,4 +158,4 @@ packages/
 
 ---
 
-*Last updated: 2026-05-12*
+*Last updated: 2026-05-11*

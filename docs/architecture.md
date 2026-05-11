@@ -59,7 +59,7 @@ Phase 2 — Core Pipeline (complete)
 
 Phase 2 — API (complete)
     packages/api/src/index.ts
-        — Hono app; port 3000 (Bun.env.PORT)
+        — Hono app; port 5001 (Bun.env.PORT)
         — Routes: GET /health, GET+POST /auth/**, /sessions/*
 
     packages/api/src/lib/auth.ts
@@ -88,9 +88,9 @@ Phase 2 — CLI (complete)
 
 Phase 3 — Web UI (complete)
     packages/web/src/index.ts
-        — Bun.serve with route map; port 5173 (Bun.env.PORT)
+        — Bun.serve with route map; port 5000 (Bun.env.PORT)
         — "/" → serves React SPA via Bun fullstack bundler (import from "./index.html")
-        — "/api/*" → proxies to packages/api (Bun.env.API_PORT, default 3000)
+        — "/api/*" → proxies to packages/api (Bun.env.API_PORT, default 5001)
 
     packages/web/src/App.tsx
         — React + shadcn/ui

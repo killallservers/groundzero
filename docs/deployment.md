@@ -78,11 +78,11 @@ bun --filter @groundzero/web run build
 
 | Key | Required | Default | Description |
 |-----|----------|---------|-------------|
-| `PORT` | No | `3000` | API HTTP port |
+| `PORT` | No | `5001` | API HTTP port |
 | `DATABASE_PATH` | No | resolved via `import.meta.url` | SQLite file path |
 | `BETTER_AUTH_SECRET` | Yes | — | Secret for signing Better Auth sessions |
-| `BETTER_AUTH_URL` | No | `http://localhost:3000` | Base URL the API is served at; used by Better Auth for cookie domain |
-| `WEB_URL` | No | `http://localhost:5173` | Trusted origin for CORS / cookie validation |
+| `BETTER_AUTH_URL` | No | `http://localhost:5001` | Base URL the API is served at; used by Better Auth for cookie domain |
+| `WEB_URL` | No | `http://localhost:5000` | Trusted origin for CORS / cookie validation |
 
 ### LLM (`packages/core`)
 
@@ -97,14 +97,14 @@ bun --filter @groundzero/web run build
 
 | Key | Required | Default | Description |
 |-----|----------|---------|-------------|
-| `PORT` | No | `5173` | Web server port |
-| `API_PORT` | No | `3000` | Port of the API server to proxy to |
+| `PORT` | No | `5000` | Web server port |
+| `API_PORT` | No | `5001` | Port of the API server to proxy to |
 | `NODE_ENV` | No | — | Set to `production` to disable HMR |
 
 ## Health Check
 
 `GET /api/health` → `{ "status": "ok" }` (via web → api proxy)
-`GET /health` → `{ "status": "ok" }` (api directly on port 3000)
+`GET /health` → `{ "status": "ok" }` (api directly on port 5001)
 
 ---
 

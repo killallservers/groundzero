@@ -13,6 +13,6 @@ app.use("/sessions/*", sessionMiddleware);
 app.route("/sessions", sessionsRouter);
 
 export default {
-  port: Bun.env.PORT ? Number(Bun.env.PORT) : 3000,
+  port: Bun.env.PORT ? Number(Bun.env.PORT) : 5001,
   fetch: app.fetch,
 };

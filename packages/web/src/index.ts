@@ -6,12 +6,12 @@ const server = Bun.serve({
     "/api/*": async (req: Request) => {
       const url = new URL(req.url);
       url.hostname = "localhost";
-      url.port = Bun.env.API_PORT ?? "3000";
+      url.port = Bun.env.API_PORT ?? "5001";
       return fetch(new Request(url, req));
     },
   },
   development: Bun.env.NODE_ENV !== "production",
-  port: Bun.env.PORT ? Number(Bun.env.PORT) : 5173,
+  port: Bun.env.PORT ? Number(Bun.env.PORT) : 5000,
 });
 
 console.log(`Web UI → http://localhost:${server.port}`);
